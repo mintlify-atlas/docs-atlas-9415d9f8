@@ -1,0 +1,118 @@
+{
+  "projectType": "saas",
+  "projectName": "Paymenter",
+  "projectDescription": "Free and open-source billing platform for hosting companies with automated subscriptions and service provisioning",
+  "theme": "willow",
+  "primaryColor": "#4565fa",
+  "lightColor": "#9cb4e1",
+  "darkColor": "#f1f5f8",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "configuration",
+              "updating"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/products",
+              "features/services",
+              "features/invoicing",
+              "features/payments",
+              "features/customers",
+              "features/tickets"
+            ]
+          },
+          {
+            "group": "Extensions",
+            "pages": [
+              "extensions/overview",
+              "extensions/payment-gateways",
+              "extensions/server-integrations",
+              "extensions/creating-extensions"
+            ]
+          },
+          {
+            "group": "Administration",
+            "pages": [
+              "admin/dashboard",
+              "admin/settings",
+              "admin/users-roles",
+              "admin/email-templates",
+              "admin/taxes"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "advanced/theming",
+              "advanced/localization",
+              "advanced/webhooks",
+              "advanced/cron-jobs"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "API Basics",
+            "pages": [
+              "api/overview",
+              "api/authentication",
+              "api/errors"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/users",
+              "api/products",
+              "api/services",
+              "api/orders",
+              "api/invoices",
+              "api/tickets"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Automated billing and subscription management",
+    "Support for multiple payment gateways (Stripe, PayPal, Mollie)",
+    "Server provisioning integrations (Pterodactyl, cPanel, Plesk, Virtualizor)",
+    "Built-in ticketing system for customer support",
+    "Powerful admin panel built with Filament",
+    "Multi-currency and tax support",
+    "Customizable product catalog with configurable options",
+    "RESTful API with OAuth authentication",
+    "Theme system for custom branding",
+    "Extension system for adding custom functionality"
+  ],
+  "publicApiSurface": [
+    "GET /api/me",
+    "POST /api/oauth/token",
+    "GET /api/v1/admin/users",
+    "POST /api/v1/admin/users",
+    "GET /api/v1/admin/products",
+    "POST /api/v1/admin/products",
+    "GET /api/v1/admin/services",
+    "POST /api/v1/admin/services",
+    "GET /api/v1/admin/orders",
+    "POST /api/v1/admin/orders",
+    "GET /api/v1/admin/invoices",
+    "POST /api/v1/admin/invoices",
+    "GET /api/v1/admin/tickets",
+    "POST /api/v1/admin/tickets"
+  ]
+}
