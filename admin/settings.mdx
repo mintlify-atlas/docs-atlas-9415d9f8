@@ -1,0 +1,459 @@
+---
+title: System Settings
+description: Configure Paymenter system settings, company information, appearance, and application behavior
+---
+
+The Settings page allows you to configure all aspects of your Paymenter installation through a centralized interface. Settings are organized into tabs for easy navigation.
+
+## Accessing Settings
+
+Navigate to **Admin Panel → System → Settings** or visit `/admin/settings`.
+
+<Note>
+Requires the `admin.settings.view` permission. Changes require `admin.settings.update` permission.
+</Note>
+
+## Settings Structure
+
+Settings are organized into tabbed categories:
+
+<CardGroup cols={3}>
+  <Card title="General" icon="gear">
+    Company info, branding, timezone, language
+  </Card>
+  <Card title="Security" icon="shield">
+    Captcha, proxies, session validation
+  </Card>
+  <Card title="Tax" icon="percent">
+    Tax configuration and rates
+  </Card>
+  <Card title="Mail" icon="envelope">
+    SMTP settings and email templates
+  </Card>
+  <Card title="Social Login" icon="users">
+    OAuth providers configuration
+  </Card>
+  <Card title="Tickets" icon="ticket">
+    Support system settings
+  </Card>
+  <Card title="Cron Jobs" icon="clock">
+    Automated task configuration
+  </Card>
+  <Card title="Credits" icon="wallet">
+    Account credit system settings
+  </Card>
+  <Card title="Theme" icon="palette">
+    Theme selection and customization
+  </Card>
+  <Card title="Invoices" icon="file-invoice">
+    Invoice numbering and formatting
+  </Card>
+  <Card title="Other" icon="ellipsis">
+    Miscellaneous system settings
+  </Card>
+</CardGroup>
+
+## General Settings
+
+Configure basic company and application information.
+
+### Company Information
+
+<Accordion title="Company Name">
+  **Setting**: `company_name`
+  
+  The name of your company displayed throughout the application.
+  
+  - **Default**: `Paymenter`
+  - **Override**: `app.name` config
+  - **Used in**: Page titles, emails, invoices, branding
+</Accordion>
+
+<Accordion title="Timezone">
+  **Setting**: `timezone`
+  
+  Default timezone for the application.
+  
+  - **Default**: `UTC`
+  - **Override**: `app.timezone` config
+  - **Options**: All PHP timezone identifiers
+  - **Impact**: Date displays, scheduled tasks, invoice due dates
+</Accordion>
+
+<Accordion title="Default Language">
+  **Setting**: `app_language`
+  
+  Default language for new users and public pages.
+  
+  - **Default**: `en`
+  - **Override**: `app.locale` config
+  - **Validation**: Must exist in `lang/` directory
+</Accordion>
+
+<Accordion title="Allowed Languages">
+  **Setting**: `allowed_languages`
+  
+  Languages available for users to select.
+  
+  - **Type**: Multi-select
+  - **Default**: All available languages
+  - **Impact**: Language switcher options
+</Accordion>
+
+### Branding
+
+<Steps>
+  <Step title="Upload Logo (Light Mode)">
+    Upload a logo for light backgrounds (`.webp` format)
+    
+    **Setting**: `logo`  
+    **Filename**: `logo-light.webp`
+  </Step>
+  
+  <Step title="Upload Logo (Dark Mode)">
+    Upload a logo for dark backgrounds
+    
+    **Setting**: `logo_dark`  
+    **Filename**: `logo-dark.webp`
+  </Step>
+  
+  <Step title="Upload Favicon">
+    Upload browser icon (`.ico`, `.png`, or `.svg`)
+    
+    **Setting**: `favicon`  
+    **Filename**: `favicon.ico`
+  </Step>
+</Steps>
+
+<Tip>
+For best results, use transparent PNG or WebP images for logos. Recommended size: 180x40px for logos, 32x32px for favicon.
+</Tip>
+
+### Contact Information
+
+<Accordion title="App URL">
+  **Setting**: `app_url`
+  
+  The base URL of your Paymenter installation.
+  
+  - **Required**: Yes
+  - **Validation**: Must be valid URL
+  - **Override**: `app.url` config
+  - **Example**: `https://billing.example.com`
+</Accordion>
+
+<Accordion title="System Email Address">
+  **Setting**: `system_email_address`
+  
+  Email address for system notifications (cron failures, updates).
+  
+  - **Required**: Yes
+  - **Type**: Email
+  - **Receives**: Error notifications, system alerts
+</Accordion>
+
+<Accordion title="Terms of Service">
+  **Setting**: `tos`
+  
+  URL to your terms of service document.
+  
+  - **Required**: No
+  - **Leave blank**: Disables ToS link
+</Accordion>
+
+## Security Settings
+
+### Captcha Configuration
+
+<Accordion title="Captcha Provider">
+  **Setting**: `captcha`
+  
+  Select captcha protection for forms.
+  
+  **Options**:
+  - `disabled` - No captcha
+  - `recaptcha-v2` - Google reCAPTCHA v2 (checkbox)
+  - `recaptcha-v3` - Google reCAPTCHA v3 (invisible)
+  - `turnstile` - Cloudflare Turnstile
+  - `hcaptcha` - hCaptcha
+  
+  **Additional Settings**:
+  - `captcha_site_key` - Public site key from provider
+  - `captcha_secret` - Secret key from provider
+</Accordion>
+
+<Warning>
+Always test captcha configuration before enabling in production. Invalid keys will prevent user registrations and form submissions.
+</Warning>
+
+### Network Security
+
+<Accordion title="Trusted Proxies">
+  **Setting**: `trusted_proxies`
+  
+  IP addresses or CIDR ranges of trusted reverse proxies.
+  
+  - **Type**: Multi-value (tags)
+  - **Format**: `1.1.1.1/32` or `2606:4700:4700::1111`
+  - **Validation**: Valid CIDR notation
+  - **Use case**: Behind Cloudflare, AWS ELB, or other proxies
+</Accordion>
+
+<Accordion title="Session Validation">
+  **Setting**: `session_validation`
+  
+  Lock sessions to specific characteristics for enhanced security.
+  
+  **Options**:
+  - `none` - No validation (default)
+  - `ip_admin` - Lock admin sessions to IP address
+  - `ip_client` - Lock client sessions to IP address
+  - `ip_both` - Lock all sessions to IP address
+  - `user_agent_admin` - Lock admin sessions to user agent
+  - `user_agent_client` - Lock client sessions to user agent
+  - `user_agent` - Lock all sessions to user agent
+  - `ip_user_agent_admin` - Lock admin to IP + user agent
+  - `ip_user_agent_client` - Lock client to IP + user agent
+  - `ip_user_agent_both` - Lock all to IP + user agent
+</Accordion>
+
+<Info>
+Session validation provides additional security but may cause issues for users on dynamic IPs or VPNs. Start with admin-only validation before applying to all users.
+</Info>
+
+## Tax Settings
+
+Configure automatic tax calculation.
+
+<Accordion title="Tax Enabled">
+  **Setting**: `tax_enabled`
+  
+  Enable/disable automatic tax calculation.
+  
+  - **Type**: Boolean
+  - **Default**: `false`
+  - **Impact**: Shows/hides tax fields in checkout
+</Accordion>
+
+<Accordion title="Tax Type">
+  **Setting**: `tax_type`
+  
+  How tax is calculated relative to product prices.
+  
+  **Options**:
+  - `inclusive` - Price includes tax (tax is extracted from price)
+  - `exclusive` - Price does not include tax (tax is added to price)
+</Accordion>
+
+<Note>
+After enabling tax, configure specific tax rates in [Tax Management](/admin/taxes).
+</Note>
+
+## Mail Settings
+
+Configure SMTP email delivery.
+
+<Steps>
+  <Step title="Enable Mail">
+    Uncheck "Disable Mail" to enable email functionality
+    
+    **Setting**: `mail_disable` (boolean)
+  </Step>
+  
+  <Step title="SMTP Configuration">
+    Enter your SMTP server details:
+    
+    - `mail_host` - SMTP hostname
+    - `mail_port` - SMTP port (typically 587 for TLS)
+    - `mail_username` - SMTP username
+    - `mail_password` - SMTP password (encrypted)
+    - `mail_encryption` - TLS, SSL, or None
+  </Step>
+  
+  <Step title="From Address">
+    Configure sender information:
+    
+    - `mail_from_address` - Email address emails are sent from
+    - `mail_from_name` - Display name for sender
+  </Step>
+  
+  <Step title="Email Verification">
+    Optionally require email verification before purchases:
+    
+    **Setting**: `mail_must_verify` (boolean)
+  </Step>
+</Steps>
+
+### Email Customization
+
+<Accordion title="Email Header">
+  **Setting**: `mail_header`
+  
+  Custom HTML/Markdown content shown at the top of all emails.
+  
+  - **Type**: Markdown editor
+  - **Supports**: HTML and Markdown
+</Accordion>
+
+<Accordion title="Email Footer">
+  **Setting**: `mail_footer`
+  
+  Custom HTML/Markdown content shown at the bottom of all emails.
+  
+  - **Type**: Markdown editor
+  - **Example**: Company address, unsubscribe link
+</Accordion>
+
+<Accordion title="Custom CSS">
+  **Setting**: `mail_css`
+  
+  Custom CSS styles applied to email templates.
+  
+  - **Type**: Markdown editor (CSS code)
+  - **Use case**: Brand colors, custom fonts
+</Accordion>
+
+## Social Login Settings
+
+Enable OAuth authentication providers.
+
+### Supported Providers
+
+<CardGroup cols={3}>
+  <Card title="Google" icon="google">
+    - `oauth_google` (enable/disable)
+    - `oauth_google_client_id`
+    - `oauth_google_client_secret`
+  </Card>
+  <Card title="GitHub" icon="github">
+    - `oauth_github` (enable/disable)
+    - `oauth_github_client_id`
+    - `oauth_github_client_secret`
+  </Card>
+  <Card title="Discord" icon="discord">
+    - `oauth_discord` (enable/disable)
+    - `oauth_discord_client_id`
+    - `oauth_discord_client_secret`
+  </Card>
+</CardGroup>
+
+<Info>
+Each provider setting includes a documentation link explaining how to obtain OAuth credentials.
+</Info>
+
+**Source**: `app/Classes/Settings.php:182`
+
+## Invoice Settings
+
+<Accordion title="Invoice Numbering">
+  Configure how invoices are numbered:
+  
+  - `invoice_number` - Next invoice number to use
+  - `invoice_number_padding` - Zero-padding length (e.g., 4 = 0001)
+  - `invoice_number_format` - Format template (e.g., `INV-{year}-{number}`)
+  
+  **Available Placeholders**:
+  - `{number}` - Zero-padded invoice number (required)
+  - `{year}` - Current year
+  - `{month}` - Current month
+  - `{day}` - Current day
+</Accordion>
+
+<Accordion title="Proforma Invoices">
+  **Setting**: `invoice_proforma`
+  
+  If enabled, unpaid invoices won't receive official numbers until paid.
+  
+  - **Default**: `false`
+  - **Use case**: EU accounting requirements
+</Accordion>
+
+<Accordion title="Invoice Snapshot">
+  **Setting**: `invoice_snapshot`
+  
+  Save customer data snapshot when invoice is paid.
+  
+  - **Default**: `true`
+  - **Captures**: Name, address, tax info at payment time
+  - **Benefit**: Historical accuracy if customer changes details
+</Accordion>
+
+## Saving Changes
+
+<Steps>
+  <Step title="Modify Settings">
+    Make changes to any setting fields in the form
+  </Step>
+  
+  <Step title="Save">
+    Click the **Save** button at the bottom or press `Cmd/Ctrl + S`
+  </Step>
+  
+  <Step title="Confirmation">
+    A success notification confirms settings were saved
+  </Step>
+</Steps>
+
+<Warning>
+Some settings override Laravel configuration values. Changes take effect immediately and may require cache clearing for some features.
+</Warning>
+
+## Settings Storage
+
+Settings are stored in the `settings` table with these attributes:
+
+- `key` - Setting identifier
+- `value` - Setting value (may be encrypted)
+- `type` - Data type (string, boolean, array)
+- `encrypted` - Whether value is encrypted (for sensitive data)
+- `settingable_type` - Polymorphic type (null for global settings)
+
+**Source**: `app/Models/Setting.php:21`
+
+## Theme Settings
+
+<Accordion title="Theme Selection">
+  **Setting**: `theme`
+  
+  Select the active frontend theme.
+  
+  - **Options**: Themes from `themes/` directory
+  - **Default**: `default`
+</Accordion>
+
+Additional theme-specific settings (colors, styles) may appear in the Theme tab based on the selected theme's configuration.
+
+## Advanced Configuration
+
+<Accordion title="Debug Mode">
+  **Setting**: `debug`
+  
+  Enable detailed error logging and HTTP request logging.
+  
+  - **Default**: `false`
+  - **Warning**: Never enable in production (exposes sensitive data)
+</Accordion>
+
+<Accordion title="Pagination">
+  **Setting**: `pagination`
+  
+  Default number of items per page in listings.
+  
+  - **Default**: `10`
+  - **Range**: 1-100
+</Accordion>
+
+<Accordion title="Disable Registration">
+  **Setting**: `registration_disabled`
+  
+  Prevent new user registrations (existing users can still log in).
+  
+  - **Default**: `false`
+  - **Use case**: Private/invitation-only systems
+</Accordion>
+
+<Card title="Related Documentation" icon="book">
+  - [Email Templates](/admin/email-templates) - Customize notification emails
+  - [Taxes](/admin/taxes) - Configure tax rates
+  - [Users & Roles](/admin/users-roles) - Manage permissions
+</Card>

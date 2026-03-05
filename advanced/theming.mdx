@@ -1,0 +1,316 @@
+---
+title: 'Theming'
+description: 'Customize the look and feel of your Paymenter installation with custom themes'
+icon: 'palette'
+---
+
+Paymenter uses [qirolab/laravel-themer](https://github.com/qirolab/laravel-themer) to provide a flexible theming system that allows you to completely customize the appearance of your billing platform.
+
+## Default Theme
+
+Paymenter ships with a default theme located in `themes/default/`. This theme includes:
+
+- Blade templates for all views
+- Tailwind CSS styling
+- JavaScript components
+- Customizable color schemes
+- Dark mode support
+
+## Creating a Custom Theme
+
+<Steps>
+  <Step title="Generate a new theme">
+    Use the built-in command to create a new theme based on the default:
+
+    ```bash
+    php artisan app:theme:create "My Theme" "Your Name"
+    ```
+
+    This will create a new theme directory in `themes/my-theme/` with all necessary files copied from the default theme.
+  </Step>
+
+  <Step title="Configure theme metadata">
+    Edit the `theme.php` file in your theme directory:
+
+    ```php themes/my-theme/theme.php
+    <?php
+
+    return [
+        'name' => 'My Theme',
+        'author' => 'Your Name',
+        'url' => 'https://example.com',
+
+        'settings' => [
+            // Theme-specific settings
+        ],
+    ];
+    ```
+  </Step>
+
+  <Step title="Develop your theme">
+    Start the development server:
+
+    ```bash
+    npm run dev my-theme
+    ```
+
+    This will compile your theme assets with hot module reloading.
+  </Step>
+
+  <Step title="Build for production">
+    When ready to deploy:
+
+    ```bash
+    npm run build my-theme
+    ```
+  </Step>
+
+  <Step title="Activate your theme">
+    Set your theme in the admin panel under Settings > Appearance, or update the `.env` file:
+
+    ```bash
+    APP_THEME=my-theme
+    ```
+  </Step>
+</Steps>
+
+## Theme Structure
+
+A Paymenter theme consists of the following files:
+
+```
+themes/my-theme/
+├── theme.php           # Theme configuration
+├── vite.config.js      # Vite build configuration
+├── css/
+│   └── app.css        # Main stylesheet
+├── js/
+│   └── app.js         # Main JavaScript entry
+└── views/
+    ├── layouts/
+    │   └── app.blade.php
+    ├── components/
+    ├── auth/
+    ├── dashboard.blade.php
+    └── ...
+```
+
+## Theme Settings
+
+Themes can define customizable settings that appear in the admin panel. The default theme includes extensive color customization:
+
+<CodeGroup>
+
+```php Light Mode Colors
+[
+    'name' => 'primary',
+    'label' => 'Primary - Brand Color (Light)',
+    'type' => 'color',
+    'default' => 'hsl(229, 100%, 64%)',
+],
+[
+    'name' => 'background',
+    'label' => 'Background - Color (Light)',
+    'type' => 'color',
+    'default' => 'hsl(100, 100%, 100%)',
+],
+```
+
+```php Dark Mode Colors
+[
+    'name' => 'dark-primary',
+    'label' => 'Primary - Brand Color (Dark)',
+    'type' => 'color',
+    'default' => 'hsl(229, 100%, 64%)',
+],
+[
+    'name' => 'dark-background',
+    'label' => 'Background - Color (Dark)',
+    'type' => 'color',
+    'default' => 'hsl(240, 18%, 9%)',
+],
+```
+
+```php Other Settings
+[
+    'name' => 'direct_checkout',
+    'label' => 'Direct Checkout',
+    'type' => 'checkbox',
+    'default' => false,
+    'database_type' => 'boolean',
+    'description' => 'Skip product overview, go directly to checkout',
+],
+[
+    'name' => 'home_page_text',
+    'label' => 'Home Page Text',
+    'type' => 'markdown',
+    'default' => 'Welcome to Paymenter!',
+],
+```
+
+</CodeGroup>
+
+### Available Setting Types
+
+- `color` - Color picker (HSL format)
+- `checkbox` - Boolean toggle
+- `select` - Dropdown with options
+- `text` - Single line text input
+- `markdown` - Markdown editor
+
+## Customizing CSS
+
+Paymenter themes use Tailwind CSS with custom color variables defined via CSS custom properties:
+
+```css themes/my-theme/css/app.css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --primary: 229 100% 64%;
+    --secondary: 237 33% 60%;
+    --background: 100 100% 100%;
+    --base: 0 0% 0%;
+}
+
+.dark {
+    --primary: 229 100% 64%;
+    --background: 240 18% 9%;
+    --base: 100 100% 100%;
+}
+```
+
+<Note>
+Colors are defined in HSL format without the `hsl()` wrapper to work with Tailwind's opacity modifiers.
+</Note>
+
+## Blade Components
+
+The default theme provides reusable Blade components:
+
+```blade
+<x-button.primary>Save Changes</x-button.primary>
+<x-form.input name="email" label="Email Address" />
+<x-modal title="Confirmation">Are you sure?</x-modal>
+<x-navigation.breadcrumb />
+<x-theme-toggle />
+```
+
+You can override these components in your custom theme by creating files at:
+
+```
+themes/my-theme/views/components/button/primary.blade.php
+themes/my-theme/views/components/form/input.blade.php
+```
+
+## JavaScript Customization
+
+The theme's `js/app.js` file is the main entry point for custom JavaScript:
+
+```javascript themes/my-theme/js/app.js
+import './bootstrap';
+
+// Add your custom JavaScript here
+document.addEventListener('DOMContentLoaded', function() {
+    // Custom initialization
+});
+```
+
+## Vite Configuration
+
+Each theme has its own Vite configuration for asset compilation:
+
+```javascript themes/my-theme/vite.config.js
+import { defineConfig } from 'vite';
+import laravel from 'laravel-vite-plugin';
+
+export default defineConfig({
+    plugins: [
+        laravel({
+            input: [
+                'themes/my-theme/css/app.css',
+                'themes/my-theme/js/app.js'
+            ],
+            refresh: true,
+        }),
+    ],
+});
+```
+
+## Logo Customization
+
+Themes can control logo display behavior:
+
+```php
+[
+    'name' => 'logo_display',
+    'label' => 'Logo display',
+    'type' => 'select',
+    'options' => [
+        'logo-only' => 'Logo only',
+        'logo-and-name' => 'Logo and Name',
+    ],
+    'default' => 'logo-and-name',
+],
+```
+
+Upload your logo via the admin panel at Settings > Appearance.
+
+## Best Practices
+
+<Warning>
+Always create a custom theme instead of modifying the default theme. This ensures your changes won't be overwritten during updates.
+</Warning>
+
+<Tip>
+Use the theme settings system for user-configurable options rather than hardcoding values.
+</Tip>
+
+- Keep your custom CSS minimal by leveraging Tailwind utilities
+- Test your theme in both light and dark modes
+- Ensure responsive design works on mobile devices
+- Maintain accessibility standards (WCAG 2.1)
+- Version control your custom theme separately
+
+## Programmatic Theme Access
+
+You can interact with themes programmatically:
+
+```php
+use Qirolab\Theme\Theme;
+
+// Get current theme
+$currentTheme = Theme::get();
+
+// Set theme
+Theme::set('my-theme', 'default');
+
+// Get theme settings
+$settings = Theme::getSettings();
+```
+
+## Troubleshooting
+
+### Assets not loading
+
+Ensure you've built the theme assets:
+
+```bash
+npm run build my-theme
+```
+
+Clear Laravel's cache:
+
+```bash
+php artisan cache:clear
+php artisan view:clear
+```
+
+### Styles not applying
+
+Check that your Vite configuration paths match your theme directory structure.
+
+### Theme not appearing in admin panel
+
+Verify the `theme.php` file exists and has valid PHP syntax.

@@ -1,0 +1,122 @@
+---
+title: "Introduction"
+description: "Welcome to Paymenter - Open-source billing platform built for hosting companies"
+---
+
+<div className="bg-gradient-to-r from-[#4565fa] to-[#9cb4e1] rounded-xl p-8 mb-8 text-white">
+  <h1 className="text-4xl font-bold mb-4">Paymenter</h1>
+  <p className="text-xl mb-0">Free and open-source billing platform for hosting companies with automated subscriptions and service provisioning</p>
+</div>
+
+## What is Paymenter?
+
+Paymenter is an open-source billing platform designed specifically for hosting companies. It automates subscriptions, eliminates billing chaos, and helps grow your hosting business without vendor lock-ins or hidden costs.
+
+Built on Laravel with modern web technologies, Paymenter provides a flexible and robust solution for managing your hosting services, handling payments, and providing exceptional customer support.
+
+<CardGroup cols={2}>
+  <Card title="Quick Installation" icon="rocket" href="/installation">
+    Get Paymenter up and running in minutes with our step-by-step installation guide
+  </Card>
+  <Card title="Configuration" icon="gear" href="/configuration">
+    Configure payment gateways, server integrations, and customize your setup
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Integrate with Paymenter using our RESTful API with OAuth authentication
+  </Card>
+  <Card title="Extensions" icon="plug" href="/extensions/overview">
+    Extend functionality with payment gateways and server provisioning integrations
+  </Card>
+</CardGroup>
+
+## Key Features
+
+<CardGroup cols={3}>
+  <Card title="Automated Billing" icon="credit-card">
+    Manage subscriptions, invoices, and payments automatically with support for multiple payment gateways
+  </Card>
+  <Card title="Service Provisioning" icon="server">
+    Automatically provision and manage services across multiple platforms including Pterodactyl, cPanel, Plesk, and more
+  </Card>
+  <Card title="Customer Portal" icon="users">
+    Provide customers with a self-service portal to manage their services, view invoices, and submit support tickets
+  </Card>
+  <Card title="Support Tickets" icon="ticket">
+    Built-in ticketing system for customer support with email integration and file attachments
+  </Card>
+  <Card title="Admin Panel" icon="gauge">
+    Powerful admin dashboard built with Filament for managing all aspects of your business
+  </Card>
+  <Card title="Multi-Currency" icon="globe">
+    Support multiple currencies and tax rates for international customers
+  </Card>
+  <Card title="Custom Branding" icon="palette">
+    Theme system allows full customization to match your brand identity
+  </Card>
+  <Card title="API Access" icon="code">
+    RESTful API with OAuth authentication for integrations and custom applications
+  </Card>
+  <Card title="Open Source" icon="code-branch">
+    MIT licensed with active community development and no vendor lock-in
+  </Card>
+</CardGroup>
+
+## Supported Integrations
+
+### Payment Gateways
+- **Stripe** - Credit card and subscription processing
+- **PayPal** - PayPal payments and IPN support
+- **Mollie** - European payment methods
+
+### Server Platforms
+- **Pterodactyl** - Game server management panel
+- **cPanel** - Web hosting control panel
+- **Plesk** - Web hosting control panel
+- **DirectAdmin** - Web hosting control panel
+- **Virtualizor** - VPS management panel
+- **Virtfusion** - Cloud management platform
+- **Convoy** - Server management platform
+- **Enhance** - Web hosting control panel
+
+## Requirements
+
+Before installing Paymenter, ensure your server meets these requirements:
+
+- **PHP** 8.3 or higher
+- **Composer** for dependency management
+- **Web server** Apache or Nginx
+- **Database** MariaDB
+- **Redis** for caching (recommended)
+
+<Note>
+  Paymenter is built on Laravel 12 and follows Laravel's system requirements. Additional PHP extensions like `ext-intl`, `ext-json`, `ext-mbstring`, `ext-pdo`, and `ext-zip` are required.
+</Note>
+
+## Getting Started
+
+<Steps>
+  <Step title="Install Paymenter">
+    Follow our [installation guide](/installation) to set up Paymenter on your server
+  </Step>
+  <Step title="Configure Your System">
+    Set up [payment gateways](/extensions/payment-gateways) and [server integrations](/extensions/server-integrations)
+  </Step>
+  <Step title="Create Products">
+    Define your [products and services](/features/products) with pricing and configuration options
+  </Step>
+  <Step title="Start Selling">
+    Your billing platform is ready to accept orders and automate service provisioning
+  </Step>
+</Steps>
+
+## Community and Support
+
+Join our active community to get help, share ideas, and contribute to Paymenter's development:
+
+- **Discord** - [Join our Discord server](https://discord.gg/paymenter-882318291014651924) for community support
+- **GitHub** - [Report issues and contribute](https://github.com/paymenter/paymenter) to the project
+- **Documentation** - Browse this documentation for guides and API references
+
+## License
+
+Paymenter is open-source software licensed under the [MIT License](https://github.com/paymenter/paymenter/blob/master/LICENSE), giving you the freedom to adapt and evolve the platform to meet your specific requirements.

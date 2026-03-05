@@ -1,0 +1,435 @@
+---
+title: Payments
+description: Configure payment gateways and manage payment processing in Paymenter
+---
+
+Paymenter's flexible payment system supports multiple payment gateways through extensions, allowing you to accept credit cards, PayPal, bank transfers, cryptocurrency, and other payment methods from customers worldwide.
+
+## Overview
+
+<CardGroup cols={2}>
+  <Card title="Multiple Gateways" icon="credit-card">
+    Support multiple payment methods simultaneously for customer convenience
+  </Card>
+  <Card title="Multi-Currency" icon="coins">
+    Each gateway can be configured for specific currencies
+  </Card>
+  <Card title="Billing Agreements" icon="file-contract">
+    Save customer payment methods for automatic recurring billing
+  </Card>
+  <Card title="Transaction Tracking" icon="list-check">
+    Complete history of payment attempts, successes, and failures
+  </Card>
+</CardGroup>
+
+## Payment Gateways
+
+Payment gateways are added to Paymenter via extensions.
+
+### Popular Gateway Extensions
+
+- **Stripe**: Credit/debit cards, Apple Pay, Google Pay
+- **PayPal**: PayPal balance, credit cards, bank accounts
+- **Mollie**: iDEAL, SEPA, credit cards (European focus)
+- **Razorpay**: Indian payment methods
+- **Coinbase**: Cryptocurrency payments
+- **Bank Transfer**: Manual bank transfer instructions
+
+<Info>
+Each payment gateway extension is developed separately. Check the Paymenter marketplace for available gateways.
+</Info>
+
+### Installing Payment Gateways
+
+<Steps>
+  <Step title="Install Extension">
+    Navigate to **Administration** → **Extensions** and install your chosen payment gateway extension
+  </Step>
+  
+  <Step title="Enable Gateway">
+    After installation, find the gateway in the extensions list and enable it
+  </Step>
+  
+  <Step title="Configure Settings">
+    Click configure and enter required credentials:
+    - API keys
+    - Secret keys
+    - Webhook URLs
+    - Environment (test/production)
+  </Step>
+  
+  <Step title="Set Currency Support">
+    Specify which currencies this gateway supports
+  </Step>
+  
+  <Step title="Test Connection">
+    Make a test payment to verify configuration
+  </Step>
+</Steps>
+
+<Warning>
+Keep gateway API keys secure. Never share them publicly or commit them to version control. Use environment variables for sensitive credentials.
+</Warning>
+
+## Payment Processing Flow
+
+Understanding how payments work in Paymenter:
+
+### Checkout Payment
+
+<Steps>
+  <Step title="Customer Initiates Payment">
+    From invoice page, customer clicks "Pay" and selects a payment method
+  </Step>
+  
+  <Step title="Gateway Selection">
+    System filters available gateways by:
+    - Invoice currency
+    - Invoice amount (minimum/maximum limits)
+    - Gateway availability
+  </Step>
+  
+  <Step title="Redirect to Gateway">
+    Customer is redirected to payment gateway's checkout page (or shown in modal)
+  </Step>
+  
+  <Step title="Payment Processed">
+    Customer completes payment on gateway's secure platform
+  </Step>
+  
+  <Step title="Webhook Received">
+    Gateway sends webhook notification to Paymenter with payment result
+  </Step>
+  
+  <Step title="Transaction Created">
+    Paymenter records transaction with status (processing, succeeded, failed)
+  </Step>
+  
+  <Step title="Invoice Updated">
+    If successful, invoice marked as paid and services activated
+  </Step>
+</Steps>
+
+### Payment Verification
+
+Some payments require additional verification:
+
+- **3D Secure**: Additional authentication for credit cards
+- **Bank Verification**: Waiting for bank transfer confirmation
+- **Cryptocurrency**: Waiting for blockchain confirmations
+
+During verification, transaction status is "processing" and the invoice shows a "checking payment" indicator.
+
+<Tip>
+Implement automatic status checking on invoice pages so customers see updates without manual refresh.
+</Tip>
+
+## Account Credits
+
+Customers can maintain a credit balance for quick payments.
+
+### How Credits Work
+
+1. **Adding Credits**: Customers can add funds to their account balance
+2. **Using Credits**: Apply credits to invoice payments automatically
+3. **Refunds**: Refunds can be issued as credits instead of gateway refunds
+4. **Multi-Currency**: Each currency has a separate credit balance
+
+### Credit Payment
+
+When paying an invoice:
+
+```
+Invoice Total: $50.00
+Account Credits: $30.00
+---
+Credits Applied: -$30.00
+Remaining Due: $20.00
+```
+
+Customer then pays the $20 balance via a payment gateway.
+
+<Note>
+Credits are applied automatically if available. Customers can't choose not to use credits (this prevents confusion).
+</Note>
+
+### Admin Credit Management
+
+Administrators can manage customer credits:
+
+1. Navigate to **Users** → Select customer → **Credits** tab
+2. Add or remove credits
+3. View credit transaction history
+4. Set credit expiration (optional)
+
+<Warning>
+Manually adjusting credits does not create invoices or refunds. Use this for account adjustments, compensations, or promotional credits.
+</Warning>
+
+## Billing Agreements
+
+Billing agreements (also called saved payment methods) enable automatic recurring billing.
+
+### What Are Billing Agreements?
+
+A billing agreement is a tokenized payment method that allows:
+
+- Charging customer without manual interaction
+- Automatic payment of recurring invoices
+- One-click checkout for future purchases
+- Reduced payment friction
+
+### Customer Setup Process
+
+<Steps>
+  <Step title="Pay Invoice">
+    When paying an invoice for a recurring service, customer sees billing agreement option
+  </Step>
+  
+  <Step title="Select Gateway">
+    Choose a payment gateway that supports billing agreements (most modern gateways do)
+  </Step>
+  
+  <Step title="Authorize Agreement">
+    Complete payment and authorize future automatic charges
+  </Step>
+  
+  <Step title="Save to Account">
+    Payment method is saved and appears in customer's payment methods list
+  </Step>
+  
+  <Step title="Attach to Services">
+    Optionally set as default for all recurring services on the invoice
+  </Step>
+</Steps>
+
+### Using Saved Payment Methods
+
+**Automatic Billing:**
+- When renewal invoice is generated, system attempts to charge the billing agreement
+- If successful, invoice is paid automatically
+- If failed, customer receives notification to pay manually
+
+**Manual Use:**
+- Customer can select saved payment method when paying any invoice
+- One-click payment without re-entering card details
+
+### Managing Billing Agreements
+
+**Customer Portal:**
+1. Navigate to **Account** → **Payment Methods**
+2. View all saved payment methods
+3. Set default method for recurring services
+4. Remove outdated payment methods
+
+**Admin Panel:**
+1. Navigate to **Users** → Select customer → **Billing Agreements**
+2. View all agreements
+3. Remove invalid agreements
+4. View usage history
+
+<Tip>
+Encourage customers to keep payment methods up to date to prevent service interruptions from failed automatic payments.
+</Tip>
+
+## Gateway Configuration
+
+Each gateway extension has unique settings, but common configurations include:
+
+### Basic Settings
+
+- **Gateway Name**: Display name shown to customers
+- **Enabled**: Toggle gateway availability
+- **Sort Order**: Control display order in checkout
+- **Logo**: Gateway logo shown in payment method selection
+
+### API Configuration
+
+- **API Keys**: Authentication credentials from gateway provider
+- **Webhook Secret**: Verify webhook authenticity
+- **Environment**: Test (sandbox) vs. Production
+
+### Currency & Limits
+
+- **Supported Currencies**: List of currencies this gateway accepts
+- **Minimum Amount**: Don't show gateway for small payments
+- **Maximum Amount**: Don't show gateway for large payments
+
+### Features
+
+- **Supports Billing Agreements**: Enable saved payment methods
+- **Instant Confirmation**: Payment status known immediately vs. requires verification
+- **Refund Support**: Can process refunds through the gateway
+
+<Note>
+Webhook URLs are typically: `https://yourdomain.com/extensions/gateways/{gateway-name}/webhook`
+
+Configure this URL in your payment gateway's dashboard.
+</Note>
+
+## Transaction Tracking
+
+Paymenter maintains complete transaction records for audit and troubleshooting.
+
+### Transaction Details
+
+Each transaction records:
+
+- **Invoice**: Which invoice was being paid
+- **Gateway**: Payment method used
+- **Amount**: Payment amount
+- **Status**: Processing, Succeeded, Failed
+- **Gateway Transaction ID**: Reference ID from payment provider
+- **Created/Updated Time**: When transaction occurred
+- **Error Messages**: Failure reasons if applicable
+
+### Transaction Statuses
+
+<AccordionGroup>
+  <Accordion title="Processing">
+    Payment has been initiated but not yet confirmed. Common for:
+    - Bank transfers awaiting clearance
+    - Cryptocurrency awaiting confirmations
+    - 3D Secure verification in progress
+  </Accordion>
+  
+  <Accordion title="Succeeded">
+    Payment completed successfully. Invoice is paid and services are activated.
+  </Accordion>
+  
+  <Accordion title="Failed">
+    Payment was declined or encountered an error. Customer must try again with:
+    - Different payment method
+    - Corrected payment details
+    - Sufficient funds
+  </Accordion>
+</AccordionGroup>
+
+### Viewing Transactions
+
+**For Customers:**
+- View transaction history on invoice detail page
+- See payment attempts and their outcomes
+
+**For Admins:**
+- Navigate to **Invoice** → View invoice → **Transactions** tab
+- See all payment attempts with full details
+- Access gateway transaction logs for troubleshooting
+
+## Refunds & Disputes
+
+Handling payment issues:
+
+### Processing Refunds
+
+<Steps>
+  <Step title="Manual Refund via Gateway">
+    Log into payment gateway dashboard and process refund
+  </Step>
+  
+  <Step title="Record in Paymenter">
+    Option 1: Issue as account credit (customer can use for future purchases)
+    Option 2: Mark invoice as refunded in admin panel
+  </Step>
+  
+  <Step title="Service Adjustment">
+    Manually suspend or cancel the associated service if needed
+  </Step>
+</Steps>
+
+<Info>
+Some gateway extensions support automatic refunds from within Paymenter. Check your specific gateway's capabilities.
+</Info>
+
+### Handling Disputes/Chargebacks
+
+1. **Receive Notification**: Gateway notifies you of dispute
+2. **Gather Evidence**: Invoice, service details, communication logs
+3. **Respond via Gateway**: Submit evidence through gateway dashboard
+4. **Await Resolution**: Gateway provider makes final decision
+5. **Update Paymenter**: Manually adjust invoice/service status if chargeback succeeds
+
+<Warning>
+Chargebacks can result in service suspension. Configure automatic suspension for disputed payments to prevent abuse.
+</Warning>
+
+## Payment Testing
+
+Always test payment flows before going live:
+
+### Test Mode
+
+1. Configure gateways in test/sandbox mode
+2. Use test API keys from gateway provider
+3. Create test invoices
+4. Process payments using gateway's test cards
+5. Verify webhooks are received correctly
+6. Confirm services activate properly
+
+### Test Scenarios
+
+- ✅ Successful payment
+- ❌ Declined card
+- ⏱️ Pending payment (bank transfer)
+- 🔁 Recurring payment via billing agreement
+- 💳 3D Secure authentication
+- 💰 Partial payment with credits
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Multiple Gateway Options" icon="list">
+    Offer at least 2-3 payment methods. Customers have strong payment preferences and more options increase conversion.
+  </Card>
+  
+  <Card title="Secure Credentials" icon="lock">
+    Store API keys securely. Use environment variables, not database. Rotate keys periodically.
+  </Card>
+  
+  <Card title="Monitor Failed Payments" icon="chart-line">
+    Track failure rates by gateway. High failure rates may indicate misconfiguration or gateway issues.
+  </Card>
+  
+  <Card title="Clear Payment Communication" icon="message">
+    Send immediate confirmation emails. Include transaction ID and gateway used for customer reference.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+### Payment Not Processing
+
+- Verify gateway is enabled
+- Check webhook URL is configured correctly in gateway dashboard
+- Review gateway extension logs for errors
+- Confirm API keys are correct and active
+- Test gateway connection from admin panel
+
+### Webhook Not Received
+
+- Check firewall isn't blocking gateway IP addresses
+- Verify webhook URL is publicly accessible (not localhost)
+- Review webhook logs in gateway dashboard
+- Ensure HTTPS certificate is valid
+- Check webhook secret matches configuration
+
+### Billing Agreement Failing
+
+- Verify payment method hasn't expired
+- Check sufficient funds in customer account
+- Confirm gateway supports automatic charging
+- Review customer's billing agreement list for status
+
+### Currency Mismatch
+
+- Ensure invoice currency is supported by selected gateway
+- Check gateway currency configuration
+- Verify exchange rates are configured if needed
+
+---
+
+## Related Resources
+
+- [Invoicing](/features/invoicing) - Creating and managing invoices
+- [Extensions](/admin/extensions) - Installing payment gateway extensions
+- [Customers](/features/customers) - Managing customer payment methods

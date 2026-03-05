@@ -1,0 +1,147 @@
+---
+title: API Overview
+description: Introduction to the Paymenter API
+---
+
+The Paymenter API allows you to programmatically manage your billing platform. You can create and manage users, products, services, orders, invoices, and support tickets through a RESTful API.
+
+## Base URL
+
+All API requests should be made to:
+
+```
+https://your-domain.com/api/v1/admin
+```
+
+## API Versioning
+
+The current API version is **v1**. All admin API endpoints are prefixed with `/api/v1/admin`.
+
+## Authentication
+
+Paymenter uses API keys with Bearer token authentication for admin API access. See the [Authentication](/api/authentication) page for details on obtaining and using API keys.
+
+## Request Format
+
+All requests must include:
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+- **Authorization**: `Bearer YOUR_API_KEY`
+
+```bash Example Request
+curl https://your-domain.com/api/v1/admin/users \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json"
+```
+
+## Response Format
+
+All API responses follow the JSON:API specification and return data in the following format:
+
+```json
+{
+  "data": {
+    "type": "users",
+    "id": "1",
+    "attributes": {
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john@example.com",
+      "created_at": "2024-01-15T10:30:00.000000Z",
+      "updated_at": "2024-01-15T10:30:00.000000Z"
+    },
+    "relationships": {
+      "orders": {
+        "data": []
+      }
+    }
+  }
+}
+```
+
+## Pagination
+
+List endpoints support pagination using the following query parameters:
+
+<ParamField query="per_page" type="integer" default="15">
+  Number of items to return per page (maximum 100)
+</ParamField>
+
+<ParamField query="page" type="integer" default="1">
+  Page number to retrieve
+</ParamField>
+
+```bash Pagination Example
+curl "https://your-domain.com/api/v1/admin/users?per_page=20&page=2" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+## Filtering
+
+Many list endpoints support filtering. Available filters depend on the specific endpoint. Use the `filter` query parameter:
+
+```bash Filtering Example
+curl "https://your-domain.com/api/v1/admin/users?filter[email]=john@example.com" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+## Sorting
+
+List endpoints support sorting using the `sort` query parameter. Prefix with `-` for descending order:
+
+```bash Sorting Example
+curl "https://your-domain.com/api/v1/admin/users?sort=-created_at" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+## Including Related Resources
+
+You can include related resources in a single request using the `include` parameter:
+
+```bash Include Example
+curl "https://your-domain.com/api/v1/admin/users/1?include=orders,services,invoices" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+<Note>
+  Available includes depend on your API key permissions. Ensure your API key has the required permissions to access related resources.
+</Note>
+
+## Rate Limiting
+
+API requests are rate-limited to prevent abuse. Rate limit information is included in response headers:
+
+- `X-RateLimit-Limit`: Maximum requests allowed per time window
+- `X-RateLimit-Remaining`: Remaining requests in current window
+- `X-RateLimit-Reset`: Time when the rate limit resets
+
+If you exceed the rate limit, you'll receive a `429 Too Many Requests` response.
+
+## IP Whitelisting
+
+For enhanced security, you can restrict API keys to specific IP addresses. This is configured when creating the API key in the admin panel.
+
+<Warning>
+  API keys provide full administrative access. Keep them secure and never expose them in client-side code or public repositories.
+</Warning>
+
+## Available Resources
+
+The Paymenter API provides access to the following resources:
+
+- [Users](/api/users) - Manage customer accounts
+- [Products](/api/products) - View and list products
+- [Services](/api/services) - Manage active customer services
+- [Orders](/api/orders) - View and manage orders
+- [Invoices](/api/invoices) - Manage billing and invoices
+- [Tickets](/api/tickets) - Handle support tickets
+
+## Need Help?
+
+If you encounter issues or have questions:
+
+- Check the [Error Reference](/api/errors) for common error codes
+- Review the [Authentication Guide](/api/authentication)
+- Consult specific resource documentation for detailed endpoint information

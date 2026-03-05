@@ -1,0 +1,438 @@
+---
+title: Tickets
+description: Provide customer support through Paymenter's integrated ticket system
+---
+
+Paymenter includes a built-in support ticket system that allows customers to submit questions, report issues, and request assistance. The ticket system is fully integrated with customer accounts and services, providing context for faster support resolution.
+
+## Overview
+
+<CardGroup cols={2}>
+  <Card title="Integrated Support" icon="headset">
+    Tickets linked to customer accounts and specific services for context
+  </Card>
+  <Card title="Department Routing" icon="sitemap">
+    Organize support by departments (billing, technical, sales)
+  </Card>
+  <Card title="Priority Levels" icon="flag">
+    Prioritize urgent issues with low, medium, and high priority flags
+  </Card>
+  <Card title="File Attachments" icon="paperclip">
+    Customers and staff can attach screenshots, logs, and documents
+  </Card>
+</CardGroup>
+
+## Ticket System Components
+
+### Ticket Properties
+
+Each ticket contains:
+
+- **Subject**: Brief description of the issue
+- **Status**: Open, answered, on hold, closed
+- **Priority**: Low, medium, high
+- **Department**: Category of support request
+- **Customer**: Who created the ticket
+- **Assigned To**: Admin staff member handling the ticket
+- **Related Service**: Optional link to specific service
+- **Messages**: Conversation thread between customer and support
+- **Attachments**: Files attached to messages
+
+### Ticket Statuses
+
+<AccordionGroup>
+  <Accordion title="Open" icon="envelope">
+    New ticket or awaiting staff response. These tickets need attention from support team.
+  </Accordion>
+  
+  <Accordion title="Answered" icon="reply">
+    Staff has responded; awaiting customer reply. Moves back to "open" when customer responds.
+  </Accordion>
+  
+  <Accordion title="On Hold" icon="pause">
+    Ticket is paused, waiting on external factors (third-party support, scheduled maintenance, etc.).
+  </Accordion>
+  
+  <Accordion title="Closed" icon="check">
+    Issue has been resolved. Closed tickets can be reopened by customer if issue persists.
+  </Accordion>
+</AccordionGroup>
+
+### Priority Levels
+
+- **Low**: General questions, feature requests, non-urgent issues
+- **Medium**: Issues affecting service but with workarounds available
+- **High**: Critical issues, service completely down, security concerns
+
+<Tip>
+Set SLA (Service Level Agreement) response times based on priority levels. For example: High priority within 1 hour, medium within 4 hours, low within 24 hours.
+</Tip>
+
+## Customer Experience
+
+Customers interact with the ticket system through the client portal.
+
+### Creating a Ticket
+
+<Steps>
+  <Step title="Navigate to Tickets">
+    Customer clicks **Tickets** in the portal navigation
+  </Step>
+  
+  <Step title="Click Create Ticket">
+    Opens the new ticket form
+  </Step>
+  
+  <Step title="Fill Out Details">
+    - **Department**: Select category (billing, technical, sales, etc.)
+    - **Subject**: Clear, concise description
+    - **Priority**: How urgent is the issue
+    - **Related Service**: Link to specific service (optional)
+    - **Message**: Detailed description of issue or question
+    - **Attachments**: Upload relevant files (screenshots, logs)
+  </Step>
+  
+  <Step title="Submit">
+    Ticket is created and customer receives confirmation email
+  </Step>
+</Steps>
+
+<Info>
+Customers are rate-limited to 1 ticket per 30 seconds to prevent spam and abuse.
+</Info>
+
+### Viewing Tickets
+
+Customers see all their tickets in the ticket list:
+
+- **Active Tickets**: Open and answered tickets
+- **Closed Tickets**: Resolved issues (can be filtered)
+- **Ticket Preview**: Subject, status, last update time
+- **Unread Indicator**: Shows tickets with new staff responses
+
+### Responding to Tickets
+
+When staff replies:
+
+1. Customer receives email notification
+2. Ticket appears with unread indicator
+3. Customer clicks ticket to view response
+4. Can reply with additional information
+5. Can attach files to their response
+6. Status changes to "open" upon customer reply
+
+<Note>
+All ticket conversation history is preserved. Customers can scroll through the entire message thread.
+</Note>
+
+## Admin Ticket Management
+
+Support staff manage tickets through the admin panel.
+
+### Ticket Dashboard
+
+Navigate to **Administration** → **Tickets** to see:
+
+- **Open Tickets**: Requiring staff response
+- **My Tickets**: Assigned to logged-in admin
+- **All Tickets**: Complete ticket list with filters
+- **Ticket Statistics**: Volume, response times, resolution rates
+
+### Responding to Tickets
+
+<Steps>
+  <Step title="Open Ticket">
+    Click ticket from list to view full details and conversation history
+  </Step>
+  
+  <Step title="Review Context">
+    - Customer information and history
+    - Related service details (if applicable)
+    - Previous messages in thread
+    - Customer's other active services
+  </Step>
+  
+  <Step title="Compose Response">
+    Write clear, helpful reply addressing customer's issue
+  </Step>
+  
+  <Step title="Attach Files (Optional)">
+    Include screenshots, configuration files, or documentation
+  </Step>
+  
+  <Step title="Set Status">
+    - **Answered**: Awaiting customer reply
+    - **On Hold**: Waiting on external factors
+    - **Closed**: Issue resolved
+  </Step>
+  
+  <Step title="Send Reply">
+    Customer receives email notification with response
+  </Step>
+</Steps>
+
+### Ticket Assignment
+
+Admins can assign tickets to specific staff members:
+
+1. Open ticket detail page
+2. Select staff member from "Assigned To" dropdown
+3. Save assignment
+4. Assigned staff member receives notification
+
+<Tip>
+Use auto-assignment rules (via custom development) to route tickets based on department or keywords.
+</Tip>
+
+### Bulk Actions
+
+Manage multiple tickets at once:
+
+- **Close Multiple Tickets**: Mark several tickets as resolved
+- **Reassign Tickets**: Move tickets to different staff member
+- **Change Priority**: Escalate or de-escalate multiple tickets
+- **Export Tickets**: Generate report of ticket data
+
+## Departments
+
+Departments organize tickets by category and help route to appropriate staff.
+
+### Setting Up Departments
+
+1. Navigate to **Administration** → **Settings** → **Ticket Departments**
+2. Add departments as needed:
+   - **Billing**: Payment issues, invoice questions
+   - **Technical Support**: Service problems, configuration help
+   - **Sales**: Pre-sales questions, product information
+   - **Abuse**: Terms of service violations, abuse reports
+3. Save settings
+
+<Info>
+Departments appear in the dropdown when customers create tickets. At least one department should be configured.
+</Info>
+
+### Department Routing
+
+Strategies for routing tickets:
+
+- **Email Aliases**: billing@yourdomain.com, support@yourdomain.com
+- **Staff Specialization**: Assign staff to specific departments
+- **Knowledge Base**: Department-specific documentation links
+- **Auto-Responses**: Department-specific acknowledgment messages
+
+## File Attachments
+
+Both customers and staff can attach files to ticket messages.
+
+### Supported Files
+
+- **Images**: Screenshots, photos (PNG, JPG, GIF)
+- **Documents**: PDFs, text files, Word documents
+- **Logs**: Server logs, error logs
+- **Archives**: ZIP files containing multiple files
+
+### Attachment Limits
+
+- **Maximum File Size**: 10 MB per file (configurable)
+- **Multiple Files**: Can attach multiple files to single message
+- **Security**: Files are scanned and stored securely
+
+<Warning>
+Do not upload executable files (.exe, .sh, .bat) as they may be blocked for security reasons. ZIP archives are safer for sharing code.
+</Warning>
+
+### Managing Attachments
+
+Admin tools:
+
+- View all attachments in ticket
+- Download attachments
+- Delete inappropriate attachments
+- Track storage usage
+
+## Email Integration
+
+Tickets integrate with email for notifications:
+
+### Customer Notifications
+
+- **New Ticket**: Confirmation with ticket ID
+- **Staff Reply**: Notification when support responds
+- **Status Change**: Updates when ticket status changes
+- **Ticket Closed**: Confirmation of resolution
+
+### Staff Notifications
+
+- **New Ticket**: Alert when customer creates ticket
+- **Customer Reply**: Notification when customer responds
+- **Assignment**: Alert when ticket is assigned to you
+- **High Priority**: Immediate notification for urgent tickets
+
+### Email Reply Parsing
+
+Some configurations allow customers to reply to ticket emails directly:
+
+1. Customer receives ticket notification email
+2. Replies to email
+3. Reply is parsed and added to ticket
+4. No need to log into portal for simple responses
+
+<Note>
+Email reply parsing requires additional configuration and is not enabled by default. Consult documentation for setup instructions.
+</Note>
+
+## Ticket Templates (Admin)
+
+Create response templates for common issues:
+
+### Using Templates
+
+1. Create template in **Administration** → **Settings**
+2. Write standard response text
+3. Use variables for dynamic content (customer name, service details)
+4. When responding to ticket, select template
+5. Customize as needed for specific situation
+
+### Common Template Topics
+
+- **Password Reset Instructions**
+- **Service Configuration Help**
+- **Billing Questions**
+- **Upgrade Process**
+- **Cancellation Policy**
+- **Common Error Resolutions**
+
+<Tip>
+Templates save time and ensure consistent support quality. Review and update templates regularly based on common questions.
+</Tip>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Respond Promptly" icon="clock">
+    Acknowledge tickets quickly even if full resolution takes time. Set response time goals by priority level.
+  </Card>
+  
+  <Card title="Gather Context" icon="magnifying-glass">
+    Review customer's service history and previous tickets before responding. Context leads to better solutions.
+  </Card>
+  
+  <Card title="Clear Communication" icon="comment-dots">
+    Write responses in clear, non-technical language. Provide step-by-step instructions when appropriate.
+  </Card>
+  
+  <Card title="Follow Up" icon="rotate">
+    After providing solution, confirm with customer that issue is resolved before closing ticket.
+  </Card>
+</CardGroup>
+
+## Ticket Metrics
+
+Track support team performance:
+
+### Key Metrics
+
+- **First Response Time**: How quickly staff replies to new tickets
+- **Resolution Time**: Average time to close tickets
+- **Ticket Volume**: Number of tickets per day/week/month
+- **Customer Satisfaction**: Post-resolution surveys (if implemented)
+- **Reopen Rate**: Percentage of tickets reopened after closure
+
+### Performance Tracking
+
+- **By Agent**: Compare individual staff performance
+- **By Department**: Identify high-volume areas
+- **By Priority**: Ensure high priority gets fast response
+- **Trends**: Spot recurring issues requiring documentation
+
+<Info>
+Use metrics to identify training opportunities, staffing needs, and common customer pain points.
+</Info>
+
+## Ticket Automation
+
+Automate routine ticket tasks:
+
+### Auto-Close
+
+Automatically close tickets after period of inactivity:
+
+1. Ticket marked as "answered"
+2. No customer reply for X days (e.g., 7 days)
+3. System sends warning email
+4. If still no reply, ticket auto-closed
+5. Customer can reopen if needed
+
+### Auto-Assignment
+
+Route tickets based on rules:
+
+- Department-based assignment
+- Round-robin distribution
+- Keyword-based routing
+- Workload balancing
+
+### Canned Responses
+
+Quick replies for common scenarios:
+
+- "We're investigating"
+- "Issue resolved, please verify"
+- "Need more information"
+- "Escalated to technical team"
+
+## Knowledge Base Integration
+
+Reduce ticket volume with self-service documentation:
+
+### Building Knowledge Base
+
+1. Identify frequent ticket topics
+2. Write clear help articles for each topic
+3. Link to documentation from ticket responses
+4. Make knowledge base searchable
+5. Update articles based on new tickets
+
+### Before Creating Ticket
+
+Show suggested articles:
+
+- Search knowledge base by keywords from subject
+- Display relevant articles
+- Customer can solve issue without ticket
+- Reduces support workload
+
+<Tip>
+Well-written documentation can reduce ticket volume by 30-50%, allowing support team to focus on complex issues.
+</Tip>
+
+## Troubleshooting
+
+### Tickets Not Creating
+
+- Check if tickets are enabled in settings
+- Verify department is configured
+- Review rate limiting settings
+- Check customer's email verification status
+
+### Email Notifications Not Sending
+
+- Test email configuration from admin panel
+- Verify customer's email address is correct
+- Check spam folder
+- Review email logs for errors
+
+### Attachments Not Uploading
+
+- Verify file size is under limit
+- Check file type is allowed
+- Review storage permissions
+- Check disk space on server
+
+---
+
+## Related Resources
+
+- [Customers](/features/customers) - Managing customer accounts
+- [Services](/features/services) - Linking tickets to services
+- [Notifications](/admin/notifications) - Configuring email templates

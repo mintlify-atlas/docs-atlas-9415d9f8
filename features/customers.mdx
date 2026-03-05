@@ -1,0 +1,462 @@
+---
+title: Customers
+description: Manage customer accounts, information, and billing details in Paymenter
+---
+
+Customers (also called users or clients) are the individuals or businesses that purchase services from your hosting company. Paymenter provides comprehensive customer management tools for both administrators and customers themselves.
+
+## Overview
+
+<CardGroup cols={2}>
+  <Card title="Unified Profiles" icon="user">
+    Complete customer information including contact details, properties, and preferences
+  </Card>
+  <Card title="Self-Service Portal" icon="gauge">
+    Customers manage their own services, invoices, and account settings
+  </Card>
+  <Card title="Custom Properties" icon="list-check">
+    Collect additional information like addresses, tax IDs, and company details
+  </Card>
+  <Card title="Multi-Currency Support" icon="globe">
+    Each customer can have balances and invoices in multiple currencies
+  </Card>
+</CardGroup>
+
+## Customer Accounts
+
+Every customer has an account that gives them access to the client portal.
+
+### Account Information
+
+**Core Fields:**
+- **First Name**: Customer's first name
+- **Last Name**: Customer's last name
+- **Email**: Login credential and contact email (must be unique)
+- **Password**: Securely hashed, never stored in plain text
+
+**Additional Features:**
+- **Avatar**: Automatically generated from Gravatar based on email
+- **Email Verification**: Status of email confirmation
+- **Two-Factor Authentication**: Optional 2FA for enhanced security
+- **Role**: Admin role assignment (for staff members)
+
+### Customer Registration
+
+Customers can register through the public registration page:
+
+<Steps>
+  <Step title="Navigate to Registration">
+    Access `/register` on your Paymenter installation
+  </Step>
+  
+  <Step title="Fill Out Form">
+    Provide first name, last name, email, and password
+  </Step>
+  
+  <Step title="Email Verification">
+    System sends verification email (if enabled in settings)
+  </Step>
+  
+  <Step title="Complete Profile">
+    Customer can add additional information like address and company details
+  </Step>
+  
+  <Step title="Start Shopping">
+    Browse products and place orders
+  </Step>
+</Steps>
+
+<Info>
+You can disable public registration and manually create customer accounts if you prefer a private registration process.
+</Info>
+
+## Customer Portal
+
+Customers access a self-service portal to manage their account and services.
+
+### Dashboard
+
+The customer dashboard provides an overview:
+
+- **Active Services**: Quick access to all running services
+- **Recent Invoices**: Unpaid and recently paid invoices
+- **Open Tickets**: Support requests awaiting response
+- **Account Balance**: Credit balance by currency
+- **Notifications**: System messages and updates
+
+### Portal Sections
+
+<AccordionGroup>
+  <Accordion title="Services" icon="server">
+    - View all services (active, pending, cancelled)
+    - Access service management pages
+    - Upgrade services
+    - Request cancellations
+    - Manage billing agreements for recurring services
+  </Accordion>
+  
+  <Accordion title="Invoices" icon="file-invoice">
+    - View invoice history
+    - Pay pending invoices
+    - Download PDF copies
+    - Track payment transactions
+  </Accordion>
+  
+  <Accordion title="Tickets" icon="ticket">
+    - Create support tickets
+    - Reply to existing tickets
+    - Upload attachments
+    - View ticket history
+  </Accordion>
+  
+  <Accordion title="Account Settings" icon="gear">
+    - Update personal information
+    - Change password
+    - Configure two-factor authentication
+    - Manage notification preferences
+    - Update billing address and tax information
+  </Accordion>
+  
+  <Accordion title="Payment Methods" icon="credit-card">
+    - View saved payment methods
+    - Add new billing agreements
+    - Set default payment method
+    - Remove old payment methods
+  </Accordion>
+  
+  <Accordion title="Credits" icon="wallet">
+    - View credit balance by currency
+    - Add funds to account
+    - View credit transaction history
+  </Accordion>
+</AccordionGroup>
+
+## Custom Properties
+
+Custom properties allow you to collect additional information from customers beyond the standard fields.
+
+### Common Use Cases
+
+- **Billing Address**: Street, city, state/province, postal code, country
+- **Company Information**: Company name, registration number
+- **Tax Details**: VAT number, tax ID, business type
+- **Phone Numbers**: Primary, mobile, support contact
+- **Custom Fields**: Industry, referral source, special requirements
+
+### Creating Custom Properties
+
+<Steps>
+  <Step title="Navigate to Custom Properties">
+    Go to **Administration** → **Custom Properties**
+  </Step>
+  
+  <Step title="Create New Property">
+    Click **Create** and configure:
+    - **Name**: Display label (e.g., "Company Name")
+    - **Key**: Internal identifier (e.g., "company_name")
+    - **Type**: Text, number, dropdown, checkbox, etc.
+    - **Required**: Whether customers must fill it out
+    - **Show on Invoice**: Display this property on invoices
+    - **Show on Registration**: Ask for this during signup
+  </Step>
+  
+  <Step title="Property Values">
+    Customers can fill out properties in their account settings
+  </Step>
+</Steps>
+
+<Tip>
+Use the "Show on Invoice" option for properties like billing address and tax ID that should appear on official invoices.
+</Tip>
+
+### Property Types
+
+- **Text**: Single-line text input
+- **Textarea**: Multi-line text input
+- **Number**: Numeric values
+- **Select**: Dropdown with predefined options
+- **Checkbox**: Yes/no boolean
+- **Date**: Date picker
+
+## Admin Customer Management
+
+Administrators have full access to customer account management.
+
+### Customer List
+
+Navigate to **Administration** → **Users** to see all customers.
+
+**Available Filters:**
+- Role (customers vs. admin staff)
+- Email verification status
+- Has active services
+- Registration date range
+
+**Quick Actions:**
+- Search by name or email
+- View customer details
+- Edit customer information
+- Access customer's services, invoices, tickets
+
+### Customer Detail View
+
+Click on a customer to access their complete profile:
+
+<Tabs>
+  <Tab title="Overview">
+    - Basic account information
+    - Edit fields (name, email, password)
+    - Manage email verification
+    - Configure 2FA
+    - Assign admin role
+  </Tab>
+  
+  <Tab title="Services">
+    - All customer services
+    - Filter by status
+    - Create manual service
+    - Quick actions (activate, suspend, cancel)
+  </Tab>
+  
+  <Tab title="Invoices">
+    - Invoice history
+    - Create manual invoice
+    - Mark as paid
+    - Cancel invoices
+  </Tab>
+  
+  <Tab title="Credits">
+    - Credit balances by currency
+    - Add/remove credits
+    - Transaction history
+  </Tab>
+  
+  <Tab title="Tickets">
+    - Customer's support tickets
+    - Respond to tickets
+    - View ticket history
+  </Tab>
+  
+  <Tab title="Billing Agreements">
+    - Saved payment methods
+    - Remove invalid agreements
+    - View usage history
+  </Tab>
+  
+  <Tab title="Properties">
+    - Custom property values
+    - Edit customer properties
+    - View property history
+  </Tab>
+</Tabs>
+
+### Creating Customers Manually
+
+Admins can create customer accounts:
+
+1. Navigate to **Administration** → **Users** → **Create**
+2. Fill in required fields (first name, last name, email, password)
+3. Optionally assign admin role
+4. Save customer
+5. Add custom properties if needed
+
+<Note>
+Manually created customers receive a welcome email with their account details. You can disable this in settings.
+</Note>
+
+## Customer Communication
+
+Paymenter sends automated emails to customers for various events:
+
+### Email Notifications
+
+- **Account Creation**: Welcome email with login instructions
+- **Email Verification**: Confirmation link
+- **Password Reset**: Secure reset link
+- **Order Confirmation**: Details of new orders
+- **Invoice Generated**: New invoice notification with payment link
+- **Payment Received**: Payment confirmation
+- **Service Activated**: Service ready notification
+- **Service Expiring Soon**: Renewal reminder
+- **Service Suspended**: Service suspended due to non-payment
+- **Ticket Updates**: Replies to support tickets
+
+### Email Templates
+
+Customize email templates:
+
+1. Navigate to **Administration** → **Notification Templates**
+2. Select template to edit
+3. Modify subject and body
+4. Use variables for dynamic content (customer name, invoice amount, etc.)
+5. Preview and save
+
+<Tip>
+Use clear, professional language in email templates. Include relevant links and contact information for customer support.
+</Tip>
+
+## Customer Notification Preferences
+
+Customers can control which notifications they receive:
+
+1. Navigate to **Account** → **Notifications**
+2. Toggle notification types:
+   - Email notifications
+   - Browser push notifications
+   - Specific event types (invoices, services, tickets)
+3. Save preferences
+
+<Info>
+Critical notifications (password reset, payment confirmation) cannot be disabled to prevent account security issues.
+</Info>
+
+## Security Features
+
+### Two-Factor Authentication (2FA)
+
+Customers can enable 2FA for enhanced account security:
+
+<Steps>
+  <Step title="Enable 2FA">
+    Navigate to **Account** → **Security** → **Enable Two-Factor Authentication**
+  </Step>
+  
+  <Step title="Scan QR Code">
+    Use authenticator app (Google Authenticator, Authy) to scan QR code
+  </Step>
+  
+  <Step title="Enter Verification Code">
+    Confirm setup by entering generated code
+  </Step>
+  
+  <Step title="Save Recovery Codes">
+    Store recovery codes in safe place for account recovery
+  </Step>
+</Steps>
+
+<Warning>
+If customer loses access to 2FA device and recovery codes, admin intervention is required to disable 2FA and regain access.
+</Warning>
+
+### Password Security
+
+- Passwords are hashed using bcrypt (never stored in plain text)
+- Password reset via email verification
+- Session management with timeout
+- Failed login attempt tracking
+
+### Admin Tools
+
+**Disable 2FA:**
+If customer loses access, admin can disable 2FA from customer edit page
+
+**Reset Password:**
+Admin can set new password for customer (customer receives notification)
+
+**Session Management:**
+View and terminate active customer sessions
+
+## Customer Analytics
+
+Track important customer metrics:
+
+### Key Metrics
+
+- **Total Customers**: Active account count
+- **New Customers**: Registrations over time period
+- **Active Customers**: Customers with active services
+- **Customer Lifetime Value (CLV)**: Total revenue per customer
+- **Churn Rate**: Percentage of customers cancelling
+
+### Customer Segments
+
+Group customers by:
+
+- **Service Count**: Single service vs. multiple services
+- **Total Spend**: High-value vs. low-value customers
+- **Service Types**: Product categories purchased
+- **Geographic Location**: By country or region
+- **Payment Behavior**: On-time payers vs. frequently late
+
+<Tip>
+Use customer segments for targeted marketing campaigns, custom pricing, or priority support tiers.
+</Tip>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Verify Contact Information" icon="envelope-circle-check">
+    Encourage email verification. Unverified emails bounce, leading to missed payment reminders and service issues.
+  </Card>
+  
+  <Card title="Collect Billing Details Early" icon="address-card">
+    Request address and tax information during registration to streamline future purchases and invoice generation.
+  </Card>
+  
+  <Card title="Promote 2FA" icon="shield-halved">
+    Encourage customers to enable two-factor authentication, especially for accounts with multiple services.
+  </Card>
+  
+  <Card title="Monitor Account Health" icon="stethoscope">
+    Track customers with suspended services or overdue invoices. Proactive outreach reduces churn.
+  </Card>
+</CardGroup>
+
+## GDPR & Privacy Compliance
+
+### Data Protection
+
+- Customer data is stored securely
+- Passwords are hashed (not reversible)
+- Payment information stored by payment gateways (PCI compliant)
+- Access logs track who views customer data
+
+### Customer Rights
+
+**Data Access:**
+Customers can view all their data in the portal
+
+**Data Export:**
+Provide data export functionality for GDPR compliance
+
+**Data Deletion:**
+Customers can request account deletion (must have no active services)
+
+**Privacy Policy:**
+Display privacy policy during registration
+
+<Warning>
+Consult legal counsel to ensure your Paymenter installation complies with relevant data protection regulations (GDPR, CCPA, etc.).
+</Warning>
+
+## Troubleshooting
+
+### Customer Can't Login
+
+- Verify email address is correct
+- Check if account is verified (if verification required)
+- Try password reset process
+- Check for failed login attempts (rate limiting)
+- Verify 2FA codes if enabled
+
+### Customer Not Receiving Emails
+
+- Check spam/junk folder
+- Verify email address in account is correct
+- Test email configuration from admin panel
+- Review email logs for delivery errors
+- Check email server reputation (blacklists)
+
+### Customer Properties Not Showing
+
+- Verify property is marked as "show on registration" or customer must add manually
+- Check property visibility settings
+- Ensure customer has saved property values
+
+---
+
+## Related Resources
+
+- [Services](/features/services) - Managing customer services
+- [Invoicing](/features/invoicing) - Customer billing and payments
+- [Tickets](/features/tickets) - Customer support system

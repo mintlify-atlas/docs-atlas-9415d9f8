@@ -1,0 +1,226 @@
+---
+title: Authentication
+description: Learn how to authenticate with the Paymenter API
+---
+
+Paymenter uses API keys with Bearer token authentication for secure API access. Admin API keys provide full administrative access to your Paymenter instance.
+
+## API Key Types
+
+Paymenter supports two types of authentication:
+
+### Admin API Keys
+
+Admin API keys provide access to the `/api/v1/admin/*` endpoints and allow you to:
+
+- Manage users, products, services, orders, invoices, and tickets
+- Perform administrative operations
+- Access all data across your Paymenter instance
+
+<Warning>
+  Admin API keys have full administrative privileges. Store them securely and never expose them in client-side code.
+</Warning>
+
+### OAuth 2.0 (User Profile Access)
+
+OAuth 2.0 is available for user profile access with limited scopes:
+
+- **profile**: View user profile information
+
+This is primarily used for third-party integrations where users grant limited access to their data.
+
+## Creating an API Key
+
+1. Log in to your Paymenter admin panel
+2. Navigate to **Settings** → **API Keys**
+3. Click **Create API Key**
+4. Configure your API key:
+   - **Name**: A descriptive name for identification
+   - **Type**: Select "Admin" for full API access
+   - **Permissions**: Select specific resource permissions
+   - **IP Addresses** (optional): Restrict access to specific IPs
+5. Save and securely store the generated API key
+
+<Note>
+  The API key is only shown once during creation. Store it securely - you won't be able to retrieve it later.
+</Note>
+
+## Using API Keys
+
+Include your API key in the `Authorization` header using Bearer token authentication:
+
+```bash
+curl https://your-domain.com/api/v1/admin/users \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json"
+```
+
+## API Key Permissions
+
+API keys can be configured with granular permissions for specific resources:
+
+- `users.view` - View users
+- `users.create` - Create users
+- `users.update` - Update users
+- `users.delete` - Delete users
+- `products.view` - View products
+- `services.view` - View services
+- `services.create` - Create services
+- `services.update` - Update services
+- `services.delete` - Delete services
+- `orders.view` - View orders
+- `orders.create` - Create orders
+- `orders.update` - Update orders
+- `orders.delete` - Delete orders
+- `invoices.view` - View invoices
+- `invoices.create` - Create invoices
+- `invoices.update` - Update invoices
+- `invoices.delete` - Delete invoices
+- `tickets.view` - View tickets
+- `tickets.create` - Create tickets
+- `tickets.update` - Update tickets
+- `tickets.delete` - Delete tickets
+
+<Note>
+  When using `include` parameters, ensure your API key has view permissions for the related resources.
+</Note>
+
+## OAuth 2.0 Flow
+
+For user-level access with OAuth 2.0:
+
+### Step 1: Obtain Access Token
+
+Request an access token using the password grant:
+
+```bash
+curl -X POST https://your-domain.com/api/oauth/token \
+  -H "Content-Type: application/json" \
+  -d '{
+    "grant_type": "password",
+    "client_id": "YOUR_CLIENT_ID",
+    "client_secret": "YOUR_CLIENT_SECRET",
+    "username": "user@example.com",
+    "password": "user_password",
+    "scope": "profile"
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "token_type": "Bearer",
+  "expires_in": 31536000,
+  "access_token": "eyJ0eXAiOiJKV1QiLCJhbGc...",
+  "refresh_token": "def50200e7d0db3..."
+}
+```
+
+### Step 2: Access User Profile
+
+Use the access token to retrieve user profile information:
+
+```bash
+curl https://your-domain.com/api/me \
+  -H "Authorization: Bearer ACCESS_TOKEN" \
+  -H "Accept: application/json"
+```
+
+**Response:**
+
+```json
+{
+  "id": 1,
+  "first_name": "John",
+  "last_name": "Doe",
+  "email": "john@example.com",
+  "email_verified_at": "2024-01-15T10:30:00.000000Z",
+  "created_at": "2024-01-15T10:30:00.000000Z",
+  "updated_at": "2024-01-15T10:30:00.000000Z"
+}
+```
+
+<Note>
+  The `/api/me` endpoint requires the `profile` scope and only returns the authenticated user's data.
+</Note>
+
+## IP Whitelisting
+
+For enhanced security, restrict API keys to specific IP addresses:
+
+1. When creating an API key, add allowed IP addresses
+2. Requests from other IPs will be rejected with a `403 Forbidden` response
+
+```json IP Restriction Error
+{
+  "error": "You do not have permission to access this resource."
+}
+```
+
+## Security Best Practices
+
+<Warning>
+  Follow these security guidelines when using API keys:
+</Warning>
+
+1. **Never commit API keys to version control** - Use environment variables or secret management systems
+2. **Use IP whitelisting** - Restrict API keys to known server IPs when possible
+3. **Apply least privilege** - Grant only necessary permissions
+4. **Rotate keys regularly** - Create new API keys and revoke old ones periodically
+5. **Monitor usage** - Review API key activity in the admin panel
+6. **Disable unused keys** - Deactivate API keys that are no longer needed
+
+## Common Authentication Errors
+
+### Missing Bearer Token (401)
+
+```json
+{
+  "error": "The request is missing a valid bearer token."
+}
+```
+
+**Solution**: Include the `Authorization` header with your API key.
+
+### Invalid API Key (401)
+
+```json
+{
+  "error": "The provided API key is invalid or has been disabled."
+}
+```
+
+**Solution**: Verify your API key is correct and enabled in the admin panel.
+
+### Insufficient Permissions (403)
+
+```json
+{
+  "error": "You do not have permission to access this resource."
+}
+```
+
+**Solution**: Check your API key has the required permissions for the endpoint.
+
+### IP Address Restricted (403)
+
+```json
+{
+  "error": "You do not have permission to access this resource."
+}
+```
+
+**Solution**: Ensure your request originates from a whitelisted IP address.
+
+## Testing Authentication
+
+Test your API key with a simple request:
+
+```bash
+curl https://your-domain.com/api/v1/admin/users \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json"
+```
+
+A successful response confirms your authentication is working correctly.

@@ -1,0 +1,463 @@
+---
+title: 'Webhooks'
+description: 'Integrate with payment gateways and external services using webhooks'
+icon: 'webhook'
+---
+
+Webhooks allow Paymenter to receive real-time notifications from payment gateways and trigger automated actions based on external events.
+
+## Overview
+
+Paymenter uses webhooks primarily for payment gateway integrations to:
+
+- Process payment confirmations
+- Handle subscription renewals
+- Receive billing agreement updates
+- Track payment failures
+- Update transaction fees
+
+## Payment Gateway Webhooks
+
+Paymenter includes webhook handlers for major payment gateways.
+
+### Stripe Webhooks
+
+<Steps>
+  <Step title="Automatic webhook setup">
+    Paymenter automatically creates a webhook endpoint on Stripe when you configure the gateway in the admin panel.
+
+    The webhook URL is:
+    ```
+    https://your-domain.com/extensions/stripe/webhook
+    ```
+  </Step>
+
+  <Step title="Webhook secret">
+    The webhook signing secret is automatically retrieved and stored in your gateway settings. Refresh the gateway settings page to view it.
+  </Step>
+
+  <Step title="Supported events">
+    Stripe webhooks handle the following events:
+
+    - `payment_intent.processing` - Payment is being processed
+    - `payment_intent.succeeded` - Payment completed successfully
+    - `payment_intent.payment_failed` - Payment failed
+    - `charge.updated` - Charge details updated (fees)
+    - `setup_intent.succeeded` - Billing agreement created
+  </Step>
+</Steps>
+
+#### Stripe Event Handling
+
+<CodeGroup>
+
+```php Payment Success
+case 'payment_intent.succeeded':
+    $paymentIntent = $event->data->object;
+    if (isset($paymentIntent->metadata->invoice_id)) {
+        ExtensionHelper::addPayment(
+            $paymentIntent->metadata->invoice_id,
+            'Stripe',
+            $paymentIntent->amount / 100,
+            null,
+            $paymentIntent->id
+        );
+    }
+    break;
+```
+
+```php Payment Failed
+case 'payment_intent.payment_failed':
+    $paymentIntent = $event->data->object;
+    if (isset($paymentIntent->metadata->invoice_id)) {
+        ExtensionHelper::addFailedPayment(
+            $paymentIntent->metadata->invoice_id,
+            'Stripe',
+            $paymentIntent->amount / 100,
+            null,
+            $paymentIntent->id
+        );
+    }
+    break;
+```
+
+```php Fee Updates
+case 'charge.updated':
+    $charge = $event->data->object;
+    $invoiceTransaction = InvoiceTransaction::where(
+        'transaction_id',
+        $charge->payment_intent
+    )->first();
+
+    if ($invoiceTransaction && $charge->balance_transaction) {
+        $balanceTransaction = $this->request(
+            'get',
+            '/balance_transactions/' . $charge->balance_transaction
+        );
+        $fee = $balanceTransaction->fee / 100;
+        ExtensionHelper::addPaymentFee($charge->payment_intent, $fee);
+    }
+    break;
+```
+
+</CodeGroup>
+
+### PayPal Webhooks
+
+<Steps>
+  <Step title="Configure webhook ID">
+    Get your webhook ID from the [PayPal Developer Dashboard](https://developer.paypal.com/developer/webhooks).
+
+    Enter it in the PayPal gateway settings in Paymenter admin panel.
+  </Step>
+
+  <Step title="Add webhook URL">
+    In PayPal Developer Dashboard, create a webhook with the URL:
+    ```
+    https://your-domain.com/extensions/paypal/webhook
+    ```
+  </Step>
+
+  <Step title="Subscribe to events">
+    Enable these event types in PayPal:
+
+    - `BILLING.SUBSCRIPTION.CREATED`
+    - `PAYMENT.SALE.COMPLETED`
+    - `VAULT.PAYMENT-TOKEN.DELETED`
+    - `PAYMENT.CAPTURE.COMPLETED`
+  </Step>
+</Steps>
+
+#### PayPal Event Handling
+
+<CodeGroup>
+
+```php Subscription Created
+if ($body['event_type'] === 'BILLING.SUBSCRIPTION.CREATED') {
+    Invoice::find($body['resource']['custom_id'])
+        ->items()
+        ->where('reference_type', Service::class)
+        ->each(function ($item) use ($body) {
+            $service = $item->reference;
+            $service->subscription_id = $body['resource']['id'];
+            $service->save();
+        });
+}
+```
+
+```php Payment Completed
+elseif ($body['event_type'] === 'PAYMENT.SALE.COMPLETED') {
+    Service::where('subscription_id', $body['resource']['billing_agreement_id'])
+        ->each(function ($service) use ($body) {
+            $latestInvoice = $service->invoices()->latest()->first();
+            ExtensionHelper::addPayment(
+                $latestInvoice->id,
+                'PayPal',
+                $body['resource']['amount']['total'],
+                $body['resource']['transaction_fee']['value'],
+                $body['resource']['id']
+            );
+        });
+}
+```
+
+```php Payment Method Deleted
+elseif ($body['event_type'] === 'VAULT.PAYMENT-TOKEN.DELETED') {
+    $billingAgreement = BillingAgreement::where(
+        'external_reference',
+        $body['resource']['id']
+    )->first();
+
+    if ($billingAgreement) {
+        $billingAgreement->delete();
+    }
+}
+```
+
+</CodeGroup>
+
+### Mollie Webhooks
+
+Mollie webhooks are configured per payment:
+
+```php
+$payment = $this->client->payments->create([
+    'amount' => [
+        'currency' => $invoice->currency_code,
+        'value' => number_format($invoice->remaining, 2, '.', ''),
+    ],
+    'description' => 'Invoice #' . $invoice->id,
+    'redirectUrl' => route('invoice.show', $invoice),
+    'webhookUrl' => route('extensions.gateways.mollie.webhook', $invoice),
+    'metadata' => [
+        'invoice_id' => $invoice->id,
+    ],
+]);
+```
+
+The webhook URL is:
+```
+https://your-domain.com/extensions/gateways/mollie/webhook
+```
+
+## Webhook Security
+
+<Warning>
+Always verify webhook signatures to prevent unauthorized requests.
+</Warning>
+
+### Stripe Signature Verification
+
+```php
+public function webhook(Request $request)
+{
+    $signature = $request->header('Stripe-Signature');
+    $webhookSecret = $this->config('stripe_webhook_secret');
+
+    if (!$this->isValidSignature(
+        $request->getContent(),
+        $signature,
+        $webhookSecret
+    )) {
+        return response()->json(['error' => 'Invalid signature'], 400);
+    }
+
+    // Process webhook...
+}
+
+private function isValidSignature($payload, $signature, $secret)
+{
+    $signedPayload = $timestamp . '.' . $payload;
+    $expectedSignature = hash_hmac('sha256', $signedPayload, $secret);
+
+    return hash_equals($expectedSignature, $signature);
+}
+```
+
+### PayPal Signature Verification
+
+```php
+public function webhook(Request $request)
+{
+    $sigString = $request->header('PAYPAL-TRANSMISSION-ID') . '|' .
+                 $request->header('PAYPAL-TRANSMISSION-TIME') . '|' .
+                 $this->config('webhook_id') . '|' .
+                 crc32($request->getContent());
+
+    $pubKey = openssl_pkey_get_public(
+        file_get_contents($request->header('PAYPAL-CERT-URL'))
+    );
+
+    $verifyResult = openssl_verify(
+        $sigString,
+        base64_decode($request->header('PAYPAL-TRANSMISSION-SIG')),
+        openssl_pkey_get_details($pubKey)['key'],
+        'sha256WithRSAEncryption'
+    );
+
+    if ($verifyResult !== 1) {
+        return response()->json(['status' => 'error'], 400);
+    }
+
+    // Process webhook...
+}
+```
+
+## Creating Custom Webhooks
+
+To create a webhook receiver for a custom extension:
+
+<Steps>
+  <Step title="Create route file">
+    Create `routes.php` in your extension directory:
+
+    ```php extensions/Gateways/MyGateway/routes.php
+    <?php
+
+    use App\Extensions\Gateways\MyGateway\MyGateway;
+    use Illuminate\Support\Facades\Route;
+    use App\Http\Middleware\VerifyCsrfToken;
+
+    Route::post('/extensions/my-gateway/webhook', [MyGateway::class, 'webhook'])
+        ->withoutMiddleware([VerifyCsrfToken::class])
+        ->name('extensions.gateways.my-gateway.webhook');
+    ```
+  </Step>
+
+  <Step title="Implement webhook handler">
+    Add the webhook method to your extension class:
+
+    ```php
+    public function webhook(Request $request)
+    {
+        // Verify signature
+        if (!$this->verifyWebhookSignature($request)) {
+            return response()->json(['error' => 'Invalid signature'], 400);
+        }
+
+        // Parse webhook payload
+        $payload = $request->json()->all();
+        $event = $payload['event_type'];
+
+        // Handle different event types
+        switch ($event) {
+            case 'payment.completed':
+                $this->handlePaymentCompleted($payload);
+                break;
+
+            case 'payment.failed':
+                $this->handlePaymentFailed($payload);
+                break;
+        }
+
+        return response()->json(['status' => 'success']);
+    }
+
+    private function handlePaymentCompleted($payload)
+    {
+        ExtensionHelper::addPayment(
+            $payload['invoice_id'],
+            'MyGateway',
+            $payload['amount'],
+            $payload['fee'] ?? null,
+            $payload['transaction_id']
+        );
+    }
+    ```
+  </Step>
+
+  <Step title="Register webhook URL">
+    Programmatically register your webhook with the payment provider:
+
+    ```php
+    public function onEnabled()
+    {
+        // Create webhook on payment provider
+        $response = Http::post('https://api.provider.com/webhooks', [
+            'url' => route('extensions.gateways.my-gateway.webhook'),
+            'events' => ['payment.completed', 'payment.failed'],
+        ]);
+
+        // Store webhook ID
+        $this->gateway->settings()->updateOrCreate(
+            ['key' => 'webhook_id'],
+            ['value' => $response['id']]
+        );
+    }
+    ```
+  </Step>
+</Steps>
+
+## Testing Webhooks
+
+### Local Development
+
+Use ngrok or a similar tool to expose your local server:
+
+```bash
+ngrok http 8000
+```
+
+Then use the ngrok URL for webhook configuration:
+```
+https://abc123.ngrok.io/extensions/stripe/webhook
+```
+
+### Webhook Testing Tools
+
+- **Stripe CLI**: Test Stripe webhooks locally
+  ```bash
+  stripe listen --forward-to localhost:8000/extensions/stripe/webhook
+  stripe trigger payment_intent.succeeded
+  ```
+
+- **PayPal Sandbox**: Use PayPal sandbox for testing
+- **RequestBin**: Inspect webhook payloads at [requestbin.com](https://requestbin.com)
+
+### Manual Testing
+
+Send test webhook requests using curl:
+
+```bash
+curl -X POST https://your-domain.com/extensions/stripe/webhook \
+  -H "Content-Type: application/json" \
+  -H "Stripe-Signature: t=...,v1=..." \
+  -d '{"type":"payment_intent.succeeded","data":{...}}'
+```
+
+## Debugging Webhooks
+
+<Info>
+Enable debug mode to log all webhook requests.
+</Info>
+
+Add logging to your webhook handler:
+
+```php
+public function webhook(Request $request)
+{
+    \Log::info('Webhook received', [
+        'headers' => $request->headers->all(),
+        'payload' => $request->all(),
+    ]);
+
+    // Process webhook...
+}
+```
+
+Check logs at:
+```bash
+tail -f storage/logs/laravel.log
+```
+
+## Common Issues
+
+### Webhook not receiving requests
+
+- Verify the webhook URL is publicly accessible
+- Check firewall rules
+- Ensure CSRF protection is disabled for webhook routes
+- Verify SSL certificate is valid (most providers require HTTPS)
+
+### Signature verification failing
+
+- Check that webhook secret is correct
+- Verify timestamp tolerance (some providers reject old requests)
+- Ensure payload is not modified before verification
+
+### Duplicate webhook events
+
+Payment providers may send the same webhook multiple times. Implement idempotency:
+
+```php
+public function webhook(Request $request)
+{
+    $eventId = $request->input('id');
+
+    // Check if already processed
+    if (Cache::has('webhook_' . $eventId)) {
+        return response()->json(['status' => 'already_processed']);
+    }
+
+    // Process webhook...
+
+    // Mark as processed (expires after 24 hours)
+    Cache::put('webhook_' . $eventId, true, now()->addDay());
+}
+```
+
+## Best Practices
+
+<Tip>
+Always return a 200 response quickly, then process the webhook asynchronously using queues.
+</Tip>
+
+- Verify all webhook signatures
+- Respond quickly (within 5 seconds)
+- Use queues for time-consuming operations
+- Implement idempotency to handle duplicates
+- Log all webhook events for debugging
+- Handle all possible event types gracefully
+- Monitor webhook delivery failures
+- Keep webhook secrets secure
+- Use HTTPS for all webhook URLs

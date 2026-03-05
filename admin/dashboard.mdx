@@ -1,0 +1,176 @@
+---
+title: Admin Dashboard
+description: Overview of the Paymenter admin dashboard, widgets, and analytics
+---
+
+The admin dashboard provides a comprehensive overview of your Paymenter installation with real-time statistics, revenue tracking, and quick access to critical information.
+
+## Overview
+
+The dashboard is built on Filament's admin panel framework and displays key metrics through customizable widgets. Access the admin dashboard by navigating to `/admin` and signing in with an account that has admin permissions.
+
+<CardGroup cols={2}>
+  <Card title="Real-Time Metrics" icon="chart-line">
+    View revenue, tickets, services, and active users at a glance
+  </Card>
+  <Card title="Revenue Analytics" icon="dollar-sign">
+    Track revenue trends with interactive charts and filters
+  </Card>
+  <Card title="Active Users" icon="users">
+    Monitor currently logged-in users and their activity
+  </Card>
+  <Card title="Support Overview" icon="ticket">
+    Quick access to recent and open support tickets
+  </Card>
+</CardGroup>
+
+## Dashboard Widgets
+
+### Overview Widget
+
+The Overview widget displays three key statistics with 30-day trend charts:
+
+- **Revenue**: Total successful transactions excluding credit transactions
+  - Shows net change percentage compared to previous 30 days
+  - Displays sparkline chart of daily revenue
+  - Color-coded indicators (green for increase, red for decrease)
+
+- **Tickets**: Total support tickets created in the last 30 days
+  - Percentage change from previous period
+  - Daily ticket creation trends
+
+- **Services**: New services provisioned in the last 30 days
+  - Growth indicators
+  - Daily service creation chart
+
+<Info>
+The Overview widget automatically refreshes every 5 minutes to keep data current.
+</Info>
+
+**Source**: `app/Admin/Widgets/Overview.php:19`
+
+### Revenue Chart
+
+The Revenue chart widget provides detailed revenue analytics with multiple data series:
+
+<Accordion title="Revenue Chart Features">
+  **Filter Options**:
+  - Last 24 hours (hourly breakdown)
+  - Last 7 days (daily breakdown)
+  - Last 30 days (daily breakdown)
+  - Last 365 days (monthly breakdown)
+
+  **Data Series**:
+  - **Revenue**: Gross transaction amounts from successful payments
+  - **Net Revenue**: Revenue minus payment gateway fees
+  - **New Orders**: Number of new orders placed in the time period
+
+  **Chart Type**: Interactive line chart with hover tooltips
+</Accordion>
+
+<Note>
+Revenue data only includes successful transactions with status `Succeeded` and excludes credit transactions.
+</Note>
+
+**Source**: `app/Admin/Widgets/Revenue.php:32`
+
+### Active Users Widget
+
+Displays users who have been active in the last 60 minutes:
+
+- Shows up to 5 most recently active users
+- Displays total online user count
+- Shows user information and last activity timestamp
+- Filters for authenticated users only (excludes guest sessions)
+
+<Tip>
+The Active Users widget helps you monitor concurrent user activity and identify peak usage times.
+</Tip>
+
+**Source**: `app/Admin/Widgets/ActiveUsers.php:19`
+
+### Support Widget
+
+Provides quick access to recent support tickets:
+
+- Displays 5 most recent non-closed tickets
+- Shows ticket subject, status, user, and creation date
+- Auto-refreshes every 30 seconds
+- Click any ticket to open the full ticket management interface
+
+**Status Indicators**:
+- 🟢 Open - New ticket awaiting response
+- 🟡 Replied - Staff responded, awaiting customer reply
+- 🔴 Closed - Ticket resolved and closed
+
+**Source**: `app/Admin/Widgets/Support.php:15`
+
+## Widget Permissions
+
+Each dashboard widget has its own permission control:
+
+```php
+admin.widgets.overview       // Overview statistics widget
+admin.widgets.revenue        // Revenue chart widget
+admin.widgets.active_users   // Active users widget
+admin.widgets.support        // Support tickets widget
+```
+
+Users will only see widgets for which they have the corresponding permission. Configure these in **Roles & Permissions**.
+
+## Customization
+
+<Warning>
+Dashboard widget customization requires PHP development knowledge. Always test changes in a development environment first.
+</Warning>
+
+### Widget Polling Intervals
+
+Modify auto-refresh intervals by editing the widget files:
+
+- **Overview**: 5 minutes (`600s`)
+- **Revenue**: No auto-refresh (filter change only)
+- **Support**: 30 seconds (`30s`)
+- **Active Users**: No auto-refresh
+
+### Adding Custom Widgets
+
+To add custom widgets:
+
+<Steps>
+  <Step title="Create Widget Class">
+    Create a new widget in `app/Admin/Widgets/` extending Filament's base widget classes
+  </Step>
+  <Step title="Register Widget">
+    Register the widget in your admin panel provider
+  </Step>
+  <Step title="Add Permissions">
+    Define permission checks using `canView()` method
+  </Step>
+  <Step title="Test Display">
+    Verify the widget appears on the dashboard for authorized users
+  </Step>
+</Steps>
+
+## Performance Considerations
+
+<Info>
+The dashboard uses Laravel's query optimization and caching to minimize database load:
+
+- Statistics use `Trend` package for efficient time-series queries
+- Widget data is calculated on-demand, not cached
+- Polling intervals prevent excessive database queries
+</Info>
+
+## Navigation
+
+The admin dashboard is always accessible from the main admin navigation:
+
+- **Icon**: Function/Dashboard icon
+- **Location**: Top of the admin sidebar
+- **Route**: `/admin`
+
+<Card title="Related Documentation" icon="book">
+  - [Users & Roles](/admin/users-roles) - Manage dashboard access permissions
+  - [Settings](/admin/settings) - Configure system-wide settings
+</Card>

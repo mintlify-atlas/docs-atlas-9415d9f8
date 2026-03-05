@@ -1,0 +1,419 @@
+---
+title: Users & Roles
+description: Manage users, role-based permissions, and team access in Paymenter
+---
+
+Paymenter uses a role-based access control (RBAC) system to manage user permissions. This allows you to create custom roles with specific permissions and assign them to users.
+
+## User Management
+
+Access user management at **Admin Panel → Administration → Users** or visit `/admin/users`.
+
+<CardGroup cols={2}>
+  <Card title="User Accounts" icon="users">
+    Create, edit, and manage customer accounts
+  </Card>
+  <Card title="Role Assignment" icon="shield-check">
+    Assign roles to grant admin permissions
+  </Card>
+  <Card title="Account Details" icon="user-circle">
+    View services, invoices, credits, and tickets
+  </Card>
+  <Card title="Search & Filter" icon="filter">
+    Find users by name, email, role, or service status
+  </Card>
+</CardGroup>
+
+## User List
+
+The user list displays all registered users with:
+
+- **First Name** & **Last Name** - User's full name
+- **Email** - Primary email address (searchable)
+- **Role** - Assigned role (if any)
+- **Credits** - Account credit balances (if user has credits)
+- **Created At** - Registration date
+
+**Source**: `app/Admin/Resources/UserResource.php:86`
+
+### Searching Users
+
+<Accordion title="Global Search">
+  Use the admin panel global search to find users by:
+  
+  - First name
+  - Last name
+  - Email address
+  
+  Results link directly to the user's edit page.
+</Accordion>
+
+<Accordion title="Table Filters">
+  Available filters:
+  
+  - **Role** - Filter by assigned role
+  - **Email Verified** - Filter users who have verified their email
+  - **Has Active Services** - Show only users with active services
+</Accordion>
+
+## Creating Users
+
+<Steps>
+  <Step title="Navigate to Users">
+    Go to **Admin → Administration → Users** and click **New User**
+  </Step>
+  
+  <Step title="Enter User Information">
+    Fill in the required fields:
+    
+    - **First Name** (required)
+    - **Last Name** (required)
+    - **Email** (required, must be unique)
+    - **Password** (required)
+  </Step>
+  
+  <Step title="Assign Role (Optional)">
+    Select a role from the dropdown to grant admin permissions
+    
+    Leave blank for regular customer accounts
+  </Step>
+  
+  <Step title="Create Account">
+    Click **Create** to save the new user
+  </Step>
+</Steps>
+
+<Note>
+Passwords are automatically hashed using Laravel's secure password hashing. They cannot be retrieved in plain text.
+</Note>
+
+**Source**: `app/Admin/Resources/UserResource.php:51`
+
+## Editing Users
+
+Click any user in the list to access the edit interface.
+
+### Basic Information
+
+<Accordion title="Name and Email">
+  - Edit first name, last name, and email address
+  - Email must remain unique across all users
+  - Changes are audited (tracked in audit log)
+</Accordion>
+
+<Accordion title="Password Reset">
+  - Enter a new password to change user's password
+  - Field is optional (leave blank to keep existing password)
+  - New password is hashed on save
+</Accordion>
+
+<Accordion title="Role Assignment">
+  - Change user's role via dropdown
+  - Searchable and preloaded for quick selection
+  - Remove role to revoke admin access
+</Accordion>
+
+### Security Settings
+
+<Accordion title="Two-Factor Authentication">
+  **Field**: `tfa_secret`
+  
+  Toggle to disable a user's 2FA if they've lost access to their device.
+  
+  - Only visible if user has 2FA enabled
+  - Toggle off to remove 2FA requirement
+  - User must re-enable 2FA from their account
+</Accordion>
+
+<Accordion title="Email Verification">
+  **Field**: `email_verified_at`
+  
+  Manually verify a user's email address.
+  
+  - Toggle on to mark email as verified
+  - Sets verification timestamp automatically
+  - Useful for manually created accounts
+</Accordion>
+
+**Source**: `app/Admin/Resources/UserResource.php:64`
+
+### User Sub-Navigation
+
+When editing a user, access additional pages via tabs:
+
+<CardGroup cols={3}>
+  <Card title="Services" icon="server">
+    View all services owned by the user
+  </Card>
+  <Card title="Invoices" icon="file-invoice">
+    Access user's invoice history
+  </Card>
+  <Card title="Credits" icon="wallet">
+    View and manage account credits
+  </Card>
+  <Card title="Tickets" icon="ticket">
+    See all support tickets from user
+  </Card>
+  <Card title="Billing Agreements" icon="handshake">
+    Manage recurring payment agreements
+  </Card>
+  <Card title="Properties" icon="tags">
+    Custom user properties and metadata
+  </Card>
+</CardGroup>
+
+**Source**: `app/Admin/Resources/UserResource.php:145`
+
+## Role Management
+
+Access role management at **Admin Panel → Configuration → Roles** or visit `/admin/roles`.
+
+### Understanding Roles
+
+Roles are collections of permissions that control access to admin panel features.
+
+<Info>
+Paymenter includes a default "Admin" role (ID: 1) with full permissions. This role cannot be edited or deleted.
+</Info>
+
+### Role List
+
+Displays all roles with:
+
+- **Name** - Role display name
+- **Permissions** - Count of assigned permissions (or "All" if wildcard permission)
+
+**Source**: `app/Admin/Resources/RoleResource.php:54`
+
+## Creating Roles
+
+<Steps>
+  <Step title="Create New Role">
+    Navigate to **Roles** and click **New Role**
+  </Step>
+  
+  <Step title="Name the Role">
+    Enter a descriptive name (e.g., "Support Manager", "Billing Staff")
+    
+    - Must be unique
+    - Maximum 255 characters
+  </Step>
+  
+  <Step title="Select Permissions">
+    Choose permissions from the checkbox list:
+    
+    - Organized by feature area
+    - Use bulk toggle to enable/disable all in a category
+    - Use search to find specific permissions
+  </Step>
+  
+  <Step title="Save Role">
+    Click **Create** to save the role
+  </Step>
+</Steps>
+
+**Source**: `app/Admin/Resources/RoleResource.php:30`
+
+## Permission System
+
+### Permission Structure
+
+Permissions follow a hierarchical naming convention:
+
+```
+admin.<resource>.<action>
+```
+
+**Examples**:
+- `admin.users.view` - View user list
+- `admin.users.create` - Create new users
+- `admin.users.update` - Edit existing users
+- `admin.users.delete` - Delete users
+- `admin.settings.view` - View settings
+- `admin.settings.update` - Modify settings
+
+### Core Permissions
+
+<Accordion title="User Management">
+  - `admin.users.view` - Access user list
+  - `admin.users.create` - Create users
+  - `admin.users.update` - Edit users
+  - `admin.users.delete` - Delete users
+</Accordion>
+
+<Accordion title="Role Management">
+  - `admin.roles.view` - Access role list
+  - `admin.roles.create` - Create roles
+  - `admin.roles.update` - Edit roles
+  - `admin.roles.delete` - Delete roles
+</Accordion>
+
+<Accordion title="Settings">
+  - `admin.settings.view` - View settings page
+  - `admin.settings.update` - Modify system settings
+</Accordion>
+
+<Accordion title="Dashboard Widgets">
+  - `admin.widgets.overview` - View overview statistics
+  - `admin.widgets.revenue` - View revenue chart
+  - `admin.widgets.active_users` - View active users
+  - `admin.widgets.support` - View support tickets widget
+</Accordion>
+
+<Accordion title="Services & Products">
+  - `admin.products.view` - View products
+  - `admin.products.create` - Create products
+  - `admin.products.update` - Edit products
+  - `admin.products.delete` - Delete products
+  - `admin.services.view` - View services
+  - `admin.services.update` - Manage services
+</Accordion>
+
+<Accordion title="Invoices & Transactions">
+  - `admin.invoices.view` - View invoices
+  - `admin.invoices.create` - Create invoices
+  - `admin.invoices.update` - Edit invoices
+  - `admin.transactions.view` - View transactions
+</Accordion>
+
+<Accordion title="Support Tickets">
+  - `admin.tickets.view` - View tickets
+  - `admin.tickets.create` - Create tickets
+  - `admin.tickets.update` - Respond to tickets
+  - `admin.tickets.delete` - Delete tickets
+</Accordion>
+
+<Accordion title="Configuration">
+  - `admin.categories.view` - View product categories
+  - `admin.categories.create` - Create categories
+  - `admin.categories.update` - Edit categories
+  - `admin.categories.delete` - Delete categories
+  - `admin.tax-rates.view` - View tax rates
+  - `admin.tax-rates.create` - Create tax rates
+  - `admin.tax-rates.update` - Edit tax rates
+  - `admin.tax-rates.delete` - Delete tax rates
+</Accordion>
+
+### Wildcard Permission
+
+<Warning>
+The wildcard permission `*` grants **full access** to all admin features. Only assign this to trusted administrators.
+</Warning>
+
+When a role has the `*` permission, permission checks always return true.
+
+**Source**: `app/Admin/Resources/RoleResource.php:60`
+
+### Extension Permissions
+
+Extensions can register additional permissions:
+
+```php
+Event::dispatch('permissions', [...])  // Extensions add permissions here
+```
+
+Custom extension permissions appear in the role editor alongside core permissions.
+
+**Source**: `app/Admin/Resources/RoleResource.php:32`
+
+## Permission Checking
+
+Permissions are checked using the `hasPermission()` method:
+
+```php
+auth()->user()->hasPermission('admin.users.view')
+```
+
+Resources use this in:
+- `canAccess()` - Control page access
+- `canView()` - Control list view
+- `canCreate()` - Control record creation
+- `canEdit()` - Control record editing
+- `canDelete()` - Control record deletion
+
+## User Relationships
+
+The Role model has a many-to-many relationship with Users:
+
+```php
+$role->users()       // Get all users with this role
+$user->role          // Get user's assigned role
+```
+
+**Source**: `app/Models/Role.php:31`
+
+## Auditing
+
+All user and role changes are automatically audited:
+
+- Creates audit log entries
+- Tracks who made changes and when
+- Records old and new values
+- View audit logs at **Admin → Audits**
+
+<Info>
+The `Role` and `User` models implement the `Auditable` interface, enabling automatic change tracking.
+</Info>
+
+**Sources**: 
+- `app/Models/Role.php:8`
+- `app/Models/User.php` (standard Paymenter user model)
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Principle of Least Privilege" icon="lock">
+    Grant only the permissions necessary for each role's responsibilities
+  </Card>
+  <Card title="Role Naming" icon="tag">
+    Use clear, descriptive role names (e.g., "Billing Manager" not "Role 1")
+  </Card>
+  <Card title="Regular Audits" icon="clipboard-check">
+    Periodically review role permissions and user assignments
+  </Card>
+  <Card title="Testing" icon="flask">
+    Test role permissions in a development environment before applying to production
+  </Card>
+</CardGroup>
+
+## Common Role Examples
+
+<Accordion title="Support Agent">
+  Permissions for customer support staff:
+  
+  - `admin.tickets.view`
+  - `admin.tickets.update`
+  - `admin.users.view`
+  - `admin.services.view`
+  - `admin.widgets.support`
+</Accordion>
+
+<Accordion title="Billing Manager">
+  Permissions for billing and finance staff:
+  
+  - `admin.invoices.view`
+  - `admin.invoices.create`
+  - `admin.invoices.update`
+  - `admin.transactions.view`
+  - `admin.users.view`
+  - `admin.widgets.revenue`
+  - `admin.widgets.overview`
+</Accordion>
+
+<Accordion title="Product Manager">
+  Permissions for managing products and services:
+  
+  - `admin.products.view`
+  - `admin.products.create`
+  - `admin.products.update`
+  - `admin.categories.view`
+  - `admin.categories.create`
+  - `admin.categories.update`
+  - `admin.services.view`
+  - `admin.services.update`
+</Accordion>
+
+<Card title="Related Documentation" icon="book">
+  - [Dashboard](/admin/dashboard) - Learn about permission-based widget visibility
+  - [Settings](/admin/settings) - System configuration requiring admin permissions
+</Card>

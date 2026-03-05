@@ -1,0 +1,222 @@
+---
+title: 'Extensions Overview'
+description: 'Learn about the Paymenter extension system for payment gateways and server integrations'
+---
+
+## What are Extensions?
+
+Extensions are modular components that extend Paymenter's functionality. They enable you to:
+
+- Accept payments through various payment gateways
+- Provision and manage servers across different control panels
+- Add custom functionality to your billing platform
+
+## Extension Types
+
+Paymenter supports three types of extensions:
+
+<CardGroup cols={3}>
+  <Card title="Payment Gateways" icon="credit-card" href="/extensions/payment-gateways">
+    Accept payments via Stripe, PayPal, Mollie, and more
+  </Card>
+  <Card title="Server Integrations" icon="server" href="/extensions/server-integrations">
+    Provision servers on Pterodactyl, cPanel, Plesk, and more
+  </Card>
+  <Card title="Custom Extensions" icon="code" href="/extensions/creating-extensions">
+    Build your own extensions to add custom functionality
+  </Card>
+</CardGroup>
+
+## Installing Extensions
+
+Extensions are located in the `extensions/` directory of your Paymenter installation. All built-in extensions come pre-installed.
+
+### Enabling an Extension
+
+<Steps>
+  <Step title="Navigate to Extensions">
+    Go to **Admin Panel** → **Extensions** in your Paymenter dashboard.
+  </Step>
+  
+  <Step title="Select Extension Type">
+    Choose between:
+    - **Gateways** for payment processors
+    - **Servers** for hosting control panels
+    - **Others** for general extensions
+  </Step>
+  
+  <Step title="Configure the Extension">
+    Click on an extension and enter the required configuration:
+    - API keys
+    - Server URLs
+    - Authentication credentials
+  </Step>
+  
+  <Step title="Enable the Extension">
+    Toggle the extension to enabled state. Some extensions (like payment gateways) may automatically configure webhooks.
+  </Step>
+</Steps>
+
+## Extension Architecture
+
+Paymenter extensions follow a consistent structure:
+
+```
+extensions/
+├── Gateways/
+│   ├── Stripe/
+│   │   ├── Stripe.php          # Main extension class
+│   │   ├── routes.php          # Custom routes
+│   │   └── resources/views/    # Blade templates
+│   └── PayPal/
+├── Servers/
+│   ├── Pterodactyl/
+│   │   └── Pterodactyl.php
+│   └── CPanel/
+└── Others/
+```
+
+### Base Classes
+
+All extensions extend from base classes:
+
+- **Gateway Extensions**: Extend `App\Classes\Extension\Gateway`
+- **Server Extensions**: Extend `App\Classes\Extension\Server`
+- **Other Extensions**: Extend `App\Classes\Extension\Extension`
+
+## Extension Metadata
+
+Extensions define their metadata using the `ExtensionMeta` attribute:
+
+```php
+use App\Attributes\ExtensionMeta;
+
+#[ExtensionMeta(
+    name: 'Stripe Gateway',
+    description: 'Accept payments via Stripe.',
+    version: '1.0.1',
+    author: 'Paymenter',
+    url: 'https://paymenter.org/docs/extensions/stripe',
+    icon: 'data:image/svg+xml;base64,...'
+)]
+class Stripe extends Gateway
+{
+    // Extension implementation
+}
+```
+
+## Configuration System
+
+Extensions define their configuration fields using the `getConfig()` method:
+
+```php
+public function getConfig($values = [])
+{
+    return [
+        [
+            'name' => 'api_key',
+            'label' => 'API Key',
+            'type' => 'text',
+            'description' => 'Your API key from the provider',
+            'required' => true,
+            'encrypted' => true, // Store securely
+        ],
+        [
+            'name' => 'test_mode',
+            'label' => 'Test Mode',
+            'type' => 'checkbox',
+            'description' => 'Enable test mode',
+            'required' => false,
+        ],
+    ];
+}
+```
+
+### Configuration Field Types
+
+- `text` - Single-line text input
+- `textarea` - Multi-line text input
+- `number` - Numeric input
+- `checkbox` - Boolean toggle
+- `select` - Dropdown selection
+- `tags` - Multiple value input
+
+## Lifecycle Hooks
+
+Extensions can hook into various lifecycle events:
+
+```php
+/**
+ * Called when the extension is first installed
+ */
+public function installed() {
+    // Setup tasks
+}
+
+/**
+ * Called when the extension is uninstalled
+ */
+public function uninstalled() {
+    // Cleanup tasks
+}
+
+/**
+ * Called when the extension is updated
+ */
+public function upgraded($oldVersion = null) {
+    // Migration tasks
+}
+
+/**
+ * Called on every request (if enabled)
+ */
+public function boot() {
+    // Register routes, event listeners, etc.
+}
+```
+
+## Accessing Configuration
+
+Within your extension, access configuration values using:
+
+```php
+$apiKey = $this->config('api_key');
+$testMode = $this->config('test_mode');
+```
+
+## Testing Configuration
+
+Server extensions can validate their configuration:
+
+```php
+public function testConfig(): bool|string
+{
+    try {
+        $this->request('/api/test-endpoint', 'GET');
+        return true;
+    } catch (Exception $e) {
+        return $e->getMessage();
+    }
+}
+```
+
+<Info>
+  The test button in the admin panel calls this method to verify credentials and connectivity.
+</Info>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Payment Gateways" icon="credit-card" href="/extensions/payment-gateways">
+    Configure Stripe, PayPal, or Mollie
+  </Card>
+  <Card title="Server Integrations" icon="server" href="/extensions/server-integrations">
+    Set up Pterodactyl, cPanel, or Plesk
+  </Card>
+  <Card title="Create Your Own" icon="code" href="/extensions/creating-extensions">
+    Build custom extensions
+  </Card>
+  <Card title="API Documentation" icon="book" href="/api/overview">
+    Explore the Paymenter API
+  </Card>
+</CardGroup>

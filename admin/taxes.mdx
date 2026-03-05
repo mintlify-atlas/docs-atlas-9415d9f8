@@ -1,0 +1,463 @@
+---
+title: Tax Configuration
+description: Configure tax rates, tax rules, and international tax handling in Paymenter
+---
+
+Paymenter supports automatic tax calculation based on customer location. Configure tax rates per country or globally, and choose between inclusive or exclusive tax calculations.
+
+## Overview
+
+Access tax rate management at **Admin Panel → Configuration → Tax Rates** or visit `/admin/tax-rates`.
+
+<CardGroup cols={2}>
+  <Card title="Country-Specific Rates" icon="globe">
+    Set different tax rates for each country
+  </Card>
+  <Card title="Global Fallback" icon="earth">
+    Configure a default rate for all countries
+  </Card>
+  <Card title="Inclusive/Exclusive" icon="calculator">
+    Choose how tax is calculated on prices
+  </Card>
+  <Card title="Automatic Application" icon="wand-magic-sparkles">
+    Tax calculated automatically based on customer country
+  </Card>
+</CardGroup>
+
+## Enabling Tax
+
+Before configuring tax rates, enable the tax system:
+
+<Steps>
+  <Step title="Navigate to Settings">
+    Go to **Admin → System → Settings** and open the **Tax** tab
+  </Step>
+  
+  <Step title="Enable Tax">
+    Toggle **Tax Enabled** to `ON`
+    
+    **Setting**: `tax_enabled`
+  </Step>
+  
+  <Step title="Choose Tax Type">
+    Select how tax is calculated:
+    
+    - **Inclusive** - Prices include tax (tax is extracted)
+    - **Exclusive** - Prices exclude tax (tax is added)
+    
+    **Setting**: `tax_type`
+  </Step>
+  
+  <Step title="Save Settings">
+    Click **Save** to enable the tax system
+  </Step>
+</Steps>
+
+<Info>
+After enabling tax, the Tax Rates menu item will appear in the admin navigation.
+</Info>
+
+**Source**: `app/Admin/Resources/TaxRateResource.php:96`
+
+## Tax Calculation Types
+
+### Inclusive Tax
+
+<Accordion title="How Inclusive Tax Works">
+  Tax is **included** in the displayed price.
+  
+  **Example**: Product price is $100 with 20% tax
+  - Displayed price: **$100.00**
+  - Net price (excluding tax): $83.33
+  - Tax amount: $16.67
+  - Total paid: $100.00
+  
+  **Use case**: Europe, Australia, and regions where prices must include tax by law
+</Accordion>
+
+### Exclusive Tax
+
+<Accordion title="How Exclusive Tax Works">
+  Tax is **added** to the displayed price.
+  
+  **Example**: Product price is $100 with 20% tax
+  - Displayed price: **$100.00**
+  - Net price: $100.00
+  - Tax amount: $20.00
+  - Total paid: $120.00
+  
+  **Use case**: United States, Canada, and regions where tax is added at checkout
+</Accordion>
+
+<Warning>
+Changing tax type affects how all prices are displayed and calculated. Consider the impact on existing products and orders before changing this setting.
+</Warning>
+
+## Tax Rate Management
+
+### Tax Rate List
+
+The tax rate list displays:
+
+- **Name** - Descriptive name for the tax rate
+- **Rate** - Percentage rate (e.g., 20, 7.5, 19)
+- **Country** - Country code or "All Countries"
+
+All columns are searchable and sortable.
+
+**Source**: `app/Admin/Resources/TaxRateResource.php:58`
+
+## Creating Tax Rates
+
+<Steps>
+  <Step title="Navigate to Tax Rates">
+    Go to **Admin → Configuration → Tax Rates** and click **New Tax Rate**
+  </Step>
+  
+  <Step title="Enter Tax Details">
+    Fill in the required fields:
+    
+    **Name**: Descriptive name (e.g., "UK VAT", "California Sales Tax")
+    - Required
+    - Maximum 255 characters
+    - For internal reference
+  </Step>
+  
+  <Step title="Set Tax Rate">
+    Enter the percentage rate
+    
+    **Rate**: Tax percentage (e.g., `20` for 20%, `7.5` for 7.5%)
+    - Required
+    - Decimal values supported (up to 2 decimal places)
+    - Do not include the % symbol
+  </Step>
+  
+  <Step title="Select Country">
+    Choose which country this rate applies to:
+    
+    **Country**: Country or "All Countries"
+    - Required
+    - Must be unique (one rate per country)
+    - Select "All Countries" for global default
+  </Step>
+  
+  <Step title="Save Tax Rate">
+    Click **Create** to save the tax rate
+  </Step>
+</Steps>
+
+**Source**: `app/Admin/Resources/TaxRateResource.php:28`
+
+## Tax Rate Fields
+
+<Accordion title="Name">
+  **Field**: `name`
+  
+  Descriptive name for the tax rate.
+  
+  - **Required**: Yes
+  - **Max Length**: 255 characters
+  - **Examples**: "VAT 20%", "GST", "Sales Tax", "Standard Rate"
+  - **Purpose**: Helps identify the rate in admin panel and reports
+</Accordion>
+
+<Accordion title="Rate">
+  **Field**: `rate`
+  
+  Tax percentage as a decimal number.
+  
+  - **Required**: Yes
+  - **Format**: Decimal number (e.g., 20, 7.5, 19.25)
+  - **Precision**: Up to 2 decimal places
+  - **Display**: Shows with % suffix in UI
+  - **Validation**: Numeric value required
+</Accordion>
+
+<Accordion title="Country">
+  **Field**: `country`
+  
+  Country code this rate applies to.
+  
+  - **Required**: Yes
+  - **Options**: Country list from `config('app.countries')` + "All Countries"
+  - **Unique**: Only one rate per country
+  - **Special value**: `all` for global/default rate
+  - **Format**: Two-letter country code (e.g., `US`, `GB`, `DE`)
+</Accordion>
+
+**Source**: `app/Models/TaxRate.php:12`
+
+## Tax Calculation Logic
+
+Paymenter determines which tax rate to apply based on customer location:
+
+### Priority System
+
+1. **Country-Specific Rate** - If a rate exists for the customer's country, use it
+2. **Global Rate** - If no country-specific rate exists, use the "All Countries" rate
+3. **No Tax** - If neither exists, no tax is applied (0%)
+
+**Source**: `app/Classes/Settings.php:662`
+
+### Customer Country Detection
+
+The customer's country is determined from:
+
+1. User properties (custom field `country`)
+2. Billing address country
+3. Account registration country
+
+<Info>
+Country values are normalized to two-letter country codes (ISO 3166-1 alpha-2) before lookup.
+</Info>
+
+### Tax Calculation Query
+
+```php
+TaxRate::whereIn('country', [$customerCountry, 'all'])
+    ->orderByRaw('country = ? desc', [$customerCountry])
+    ->first();
+```
+
+This query:
+- Searches for both country-specific and global rates
+- Prioritizes country-specific over global
+- Returns the most specific applicable rate
+
+**Source**: `app/Classes/Settings.php:675`
+
+## Example Tax Configurations
+
+### European VAT Setup
+
+<Accordion title="Multiple EU Countries">
+  Create separate rates for each EU country:
+  
+  | Name | Rate | Country |
+  |------|------|----------|
+  | Germany VAT | 19 | DE |
+  | France VAT | 20 | FR |
+  | Spain VAT | 21 | ES |
+  | Italy VAT | 22 | IT |
+  | Netherlands VAT | 21 | NL |
+  
+  **Tax Type**: Inclusive
+  
+  **Notes**:
+  - Each EU country has different VAT rates
+  - VAT must be included in displayed prices
+  - Consider using a global rate for non-EU countries
+</Accordion>
+
+### United States Sales Tax
+
+<Accordion title="State-Based Taxation">
+  US sales tax varies by state. You can:
+  
+  **Option 1**: Set rates for states you have nexus in:
+  
+  | Name | Rate | Country |
+  |------|------|----------|
+  | California Sales Tax | 7.25 | US |
+  | Texas Sales Tax | 6.25 | US |
+  | New York Sales Tax | 4.00 | US |
+  
+  **Option 2**: Use an average or single rate:
+  
+  | Name | Rate | Country |
+  |------|------|----------|
+  | US Sales Tax | 8.00 | US |
+  
+  **Tax Type**: Exclusive
+  
+  <Note>
+  Paymenter's country-level tax system may not be sufficient for complex US sales tax requirements. Consider consulting a tax professional or using a dedicated tax service integration.
+  </Note>
+</Accordion>
+
+### Global Business
+
+<Accordion title="Default Rate with Overrides">
+  Set a global default with country-specific overrides:
+  
+  | Name | Rate | Country |
+  |------|------|----------|
+  | Default Tax | 10 | All Countries |
+  | UK VAT | 20 | GB |
+  | Germany VAT | 19 | DE |
+  | Australia GST | 10 | AU |
+  | Canada GST | 5 | CA |
+  
+  **Tax Type**: Your preference
+  
+  **Benefits**:
+  - Ensures all customers are taxed appropriately
+  - Specific rates for major markets
+  - Fallback for countries without specific rules
+</Accordion>
+
+## Editing Tax Rates
+
+Click any tax rate in the list to edit it.
+
+<Warning>
+**Considerations when editing tax rates:**
+
+- Changes apply to new orders immediately
+- Existing unpaid invoices may need manual adjustment
+- Historical invoices are not retroactively changed
+- Consider creating a new rate instead of editing for audit purposes
+</Warning>
+
+## Deleting Tax Rates
+
+Tax rates can be deleted using bulk actions:
+
+1. Select one or more tax rates using checkboxes
+2. Choose **Delete** from the bulk actions menu
+3. Confirm deletion
+
+<Warning>
+Deleting a tax rate does not affect historical invoices, but may cause issues if referenced by active pricing rules. Verify no active products depend on the rate before deletion.
+</Warning>
+
+## Tax Exemptions
+
+Paymenter does not currently support per-customer tax exemptions at the model level. To implement tax exemptions:
+
+<Steps>
+  <Step title="Identify Exempt Customers">
+    Mark customers as tax-exempt using custom user properties or tags
+  </Step>
+  
+  <Step title="Manual Override">
+    Manually adjust invoices for tax-exempt customers
+  </Step>
+  
+  <Step title="Custom Development">
+    Implement custom tax exemption logic in your Paymenter installation
+  </Step>
+</Steps>
+
+<Info>
+Consider extending Paymenter with custom tax exemption functionality if you frequently serve tax-exempt customers (e.g., non-profits, government entities).
+</Info>
+
+## Tax Reporting
+
+While Paymenter doesn't include built-in tax reports, you can:
+
+- Export invoice data from the invoices page
+- Query the `invoices` table for tax calculations
+- Use the audit log to track tax rate changes
+- Integrate with accounting software via API
+
+## Auditing
+
+All tax rate changes are automatically audited:
+
+- Creates audit log entries for creates, updates, and deletes
+- Tracks who made changes and when
+- Records old and new values
+- View audit logs at **Admin → Audits**
+
+**Source**: `app/Models/TaxRate.php:8`
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Consult Tax Professionals" icon="user-tie">
+    Tax laws are complex. Consult with tax advisors for your jurisdiction
+  </Card>
+  <Card title="Regular Updates" icon="calendar-check">
+    Review and update tax rates when laws change
+  </Card>
+  <Card title="Clear Naming" icon="tag">
+    Use descriptive names that indicate country and rate
+  </Card>
+  <Card title="Test Before Launch" icon="flask">
+    Verify tax calculations on test orders before going live
+  </Card>
+  <Card title="Document Changes" icon="file-pen">
+    Keep records of when and why tax rates were changed
+  </Card>
+  <Card title="Audit Trail" icon="list-check">
+    Regularly review the audit log for tax-related changes
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<Accordion title="Tax Not Calculating">
+  1. Verify **Tax Enabled** is turned on in Settings
+  2. Check that a tax rate exists for the customer's country or "All Countries"
+  3. Confirm customer has a country set in their profile
+  4. Ensure products are not marked as tax-exempt (if your system supports it)
+</Accordion>
+
+<Accordion title="Wrong Tax Rate Applied">
+  1. Check the customer's country in their user properties
+  2. Verify the tax rate for that country is correct
+  3. Check if a more specific rate exists that overrides the expected one
+  4. Review the tax priority system (country-specific > global)
+</Accordion>
+
+<Accordion title="Cannot Create Tax Rate">
+  1. Ensure the country hasn't already been used (one rate per country)
+  2. Verify Tax is enabled in Settings (menu won't show if disabled)
+  3. Check you have the `admin.tax-rates.create` permission
+</Accordion>
+
+<Accordion title="Tax Shows Incorrectly on Invoice">
+  1. Verify the **Tax Type** setting (Inclusive vs Exclusive)
+  2. Check that the correct tax rate was applied at order time
+  3. Confirm invoice template is displaying tax correctly
+  4. Review invoice calculation logic in your theme
+</Accordion>
+
+## Technical Details
+
+### Tax Model
+
+The `TaxRate` model is simple:
+
+```php
+protected $fillable = ['name', 'rate', 'country'];
+```
+
+**Database Table**: `tax_rates`
+
+**Relationships**: None (standalone model)
+
+**Source**: `app/Models/TaxRate.php:12`
+
+### Settings Integration
+
+Tax rates are accessed via the `Settings::tax()` helper:
+
+```php
+$taxRate = Settings::tax($user);  // Returns TaxRate model or 0
+```
+
+This method:
+- Accepts optional user parameter (defaults to current user)
+- Reads user's country from properties
+- Queries for applicable tax rate
+- Returns `TaxRate` model or `0` if no tax
+- Uses Laravel's `once()` helper to cache result per request
+
+**Source**: `app/Classes/Settings.php:662`
+
+## API Integration
+
+While Paymenter doesn't include a built-in tax calculation API endpoint, you can:
+
+- Create custom API endpoints for tax calculation
+- Integrate with third-party tax services (Avalara, TaxJar, etc.)
+- Use webhooks to update tax rates automatically
+- Export tax rate data via API for external systems
+
+<Card title="Related Documentation" icon="book">
+  - [Settings](/admin/settings) - Enable tax and configure calculation type
+  - [Dashboard](/admin/dashboard) - Monitor revenue with tax insights
+</Card>

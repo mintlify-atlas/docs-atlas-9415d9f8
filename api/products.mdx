@@ -1,0 +1,414 @@
+---
+title: Products
+description: View and manage products via the API
+---
+
+The Products API allows you to retrieve product information from Paymenter. Products represent the services you offer to customers.
+
+## The Product Object
+
+<ResponseField name="id" type="integer">
+  Unique identifier for the product
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Product name
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Product description
+</ResponseField>
+
+<ResponseField name="image" type="string">
+  URL or path to product image
+</ResponseField>
+
+<ResponseField name="slug" type="string">
+  URL-friendly identifier for the product
+</ResponseField>
+
+<ResponseField name="stock" type="integer">
+  Available stock quantity (null for unlimited)
+</ResponseField>
+
+<ResponseField name="per_user_limit" type="integer">
+  Maximum number a single user can purchase (null for unlimited)
+</ResponseField>
+
+<ResponseField name="sort" type="integer">
+  Sort order for display
+</ResponseField>
+
+<ResponseField name="allow_quantity" type="boolean">
+  Whether users can purchase multiple quantities
+</ResponseField>
+
+<ResponseField name="email_template" type="string">
+  Email template to use when service is created
+</ResponseField>
+
+<ResponseField name="hidden" type="boolean">
+  Whether the product is hidden from customers
+</ResponseField>
+
+<ResponseField name="created_at" type="datetime">
+  Timestamp when the product was created
+</ResponseField>
+
+<ResponseField name="updated_at" type="datetime">
+  Timestamp when the product was last updated
+</ResponseField>
+
+### Relationships
+
+<ResponseField name="category" type="object">
+  The category this product belongs to
+</ResponseField>
+
+<ResponseField name="plans" type="array">
+  Pricing plans available for this product
+  <Expandable title="Plan object">
+    <ResponseField name="id" type="integer">
+      Plan ID
+    </ResponseField>
+    <ResponseField name="type" type="string">
+      Plan type: `free`, `one-time`, `recurring`
+    </ResponseField>
+    <ResponseField name="billing_period" type="integer">
+      Billing period (for recurring plans)
+    </ResponseField>
+    <ResponseField name="billing_unit" type="string">
+      Billing unit: `day`, `week`, `month`, `year`
+    </ResponseField>
+    <ResponseField name="prices" type="array">
+      Prices in different currencies
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="services" type="array">
+  Active services using this product (requires permission)
+</ResponseField>
+
+## List Products
+
+<CodeGroup>
+```bash cURL
+curl https://your-domain.com/api/v1/admin/products \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://your-domain.com/api/v1/admin/products', {
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Accept': 'application/json'
+  }
+});
+
+const products = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://your-domain.com/api/v1/admin/products',
+    headers={
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Accept': 'application/json'
+    }
+)
+
+products = response.json()
+```
+
+```php PHP
+$response = Http::withHeaders([
+    'Authorization' => 'Bearer ' . $apiKey,
+    'Accept' => 'application/json',
+])->get('https://your-domain.com/api/v1/admin/products');
+
+$products = $response->json();
+```
+</CodeGroup>
+
+### Query Parameters
+
+<ParamField query="per_page" type="integer" default="15">
+  Number of products to return per page (max 100)
+</ParamField>
+
+<ParamField query="page" type="integer" default="1">
+  Page number for pagination
+</ParamField>
+
+<ParamField query="filter[name]" type="string">
+  Filter products by name
+</ParamField>
+
+<ParamField query="filter[category_id]" type="integer">
+  Filter products by category ID
+</ParamField>
+
+<ParamField query="filter[server_id]" type="integer">
+  Filter products by server ID
+</ParamField>
+
+<ParamField query="filter[hidden]" type="boolean">
+  Filter by hidden status (true/false)
+</ParamField>
+
+<ParamField query="filter[allow_quantity]" type="boolean">
+  Filter by whether quantity is allowed
+</ParamField>
+
+<ParamField query="sort" type="string">
+  Sort products. Available: `id`, `created_at`, `updated_at`, `name`, `sort`, `stock`. Prefix with `-` for descending.
+</ParamField>
+
+<ParamField query="include" type="string">
+  Include related resources: `category`, `plans.prices`, `services`. Comma-separated.
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": [
+    {
+      "type": "products",
+      "id": "1",
+      "attributes": {
+        "name": "Basic Web Hosting",
+        "description": "Perfect for small websites",
+        "image": null,
+        "slug": "basic-web-hosting",
+        "stock": null,
+        "per_user_limit": null,
+        "sort": 0,
+        "allow_quantity": true,
+        "email_template": "service_created",
+        "hidden": false,
+        "created_at": "2024-01-15T10:30:00.000000Z",
+        "updated_at": "2024-01-15T10:30:00.000000Z"
+      },
+      "relationships": {
+        "category": {
+          "data": {
+            "type": "categories",
+            "id": "1"
+          }
+        },
+        "plans": {
+          "data": [
+            {
+              "type": "plans",
+              "id": "1"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "links": {
+    "first": "https://your-domain.com/api/v1/admin/products?page=1",
+    "last": "https://your-domain.com/api/v1/admin/products?page=3",
+    "prev": null,
+    "next": "https://your-domain.com/api/v1/admin/products?page=2"
+  },
+  "meta": {
+    "current_page": 1,
+    "from": 1,
+    "path": "https://your-domain.com/api/v1/admin/products",
+    "per_page": 15,
+    "to": 15
+  }
+}
+```
+
+## Retrieve a Product
+
+<CodeGroup>
+```bash cURL
+curl https://your-domain.com/api/v1/admin/products/1 \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://your-domain.com/api/v1/admin/products/1', {
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Accept': 'application/json'
+  }
+});
+
+const product = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://your-domain.com/api/v1/admin/products/1',
+    headers={
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Accept': 'application/json'
+    }
+)
+
+product = response.json()
+```
+</CodeGroup>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the product to retrieve
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="include" type="string">
+  Include related resources: `category`, `plans.prices`, `services`
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": {
+    "type": "products",
+    "id": "1",
+    "attributes": {
+      "name": "Basic Web Hosting",
+      "description": "Perfect for small websites. Includes 10GB storage, 100GB bandwidth.",
+      "image": null,
+      "slug": "basic-web-hosting",
+      "stock": null,
+      "per_user_limit": null,
+      "sort": 0,
+      "allow_quantity": true,
+      "email_template": "service_created",
+      "hidden": false,
+      "created_at": "2024-01-15T10:30:00.000000Z",
+      "updated_at": "2024-01-15T10:30:00.000000Z"
+    },
+    "relationships": {
+      "category": {
+        "data": {
+          "type": "categories",
+          "id": "1"
+        }
+      },
+      "plans": {
+        "data": [
+          {
+            "type": "plans",
+            "id": "1"
+          },
+          {
+            "type": "plans",
+            "id": "2"
+          }
+        ]
+      }
+    }
+  },
+  "included": [
+    {
+      "type": "plans",
+      "id": "1",
+      "attributes": {
+        "type": "recurring",
+        "billing_period": 1,
+        "billing_unit": "month"
+      },
+      "relationships": {
+        "prices": {
+          "data": [
+            {
+              "type": "prices",
+              "id": "1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "prices",
+      "id": "1",
+      "attributes": {
+        "price": "9.99",
+        "setup_fee": "0.00",
+        "currency_code": "USD"
+      }
+    }
+  ]
+}
+```
+
+## Product Plans and Pricing
+
+Products have one or more plans that define billing cycles and pricing:
+
+### Plan Types
+
+- **free**: No charge
+- **one-time**: Single payment
+- **recurring**: Regular billing cycle
+
+### Billing Units
+
+- **day**: Daily billing
+- **week**: Weekly billing
+- **month**: Monthly billing
+- **year**: Annual billing
+
+### Including Plans with Prices
+
+To get full pricing information, include plans and their prices:
+
+```bash
+curl "https://your-domain.com/api/v1/admin/products/1?include=plans.prices" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+This returns the product with all plans and their prices in different currencies.
+
+<Note>
+  Products are read-only via the API. Use the Paymenter admin panel to create or modify products.
+</Note>
+
+## Stock Management
+
+Products with limited stock:
+
+```json Limited Stock Product
+{
+  "data": {
+    "type": "products",
+    "id": "5",
+    "attributes": {
+      "name": "Dedicated Server - Special Offer",
+      "stock": 5,
+      "per_user_limit": 1,
+      ...
+    }
+  }
+}
+```
+
+- **stock**: `null` = unlimited, `> 0` = remaining quantity
+- **per_user_limit**: `null` = unlimited, `> 0` = max per customer
+
+## Hidden Products
+
+Products can be hidden from the public catalog but still purchasable via direct link:
+
+```bash Filter Hidden Products
+curl "https://your-domain.com/api/v1/admin/products?filter[hidden]=true" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```

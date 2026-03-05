@@ -1,0 +1,364 @@
+---
+title: 'Payment Gateways'
+description: 'Configure payment gateways to accept payments in Paymenter'
+---
+
+## Available Payment Gateways
+
+Paymenter includes built-in support for popular payment processors:
+
+<CardGroup cols={3}>
+  <Card title="Stripe" icon="stripe">
+    Cards, SEPA, iDEAL, and 40+ payment methods
+  </Card>
+  <Card title="PayPal" icon="paypal">
+    PayPal accounts and credit cards
+  </Card>
+  <Card title="Mollie" icon="money-bill">
+    European payment methods
+  </Card>
+</CardGroup>
+
+## Stripe Gateway
+
+Stripe is a powerful payment processor supporting cards, bank transfers, and local payment methods worldwide.
+
+### Features
+
+- **Payment Methods**: Cards, SEPA Direct Debit, iDEAL, Bancontact, SOFORT, and more
+- **Billing Agreements**: Store payment methods for automatic renewals
+- **Subscriptions**: Native Stripe subscription support
+- **Webhooks**: Automatic webhook configuration
+
+### Configuration
+
+<Steps>
+  <Step title="Get API Keys">
+    1. Go to [Stripe Dashboard](https://dashboard.stripe.com/apikeys)
+    2. Copy your **Publishable key** (starts with `pk_`)
+    3. Create a **Restricted key** with these permissions:
+       - Write access to Customers, PaymentIntents, SetupIntents, Subscriptions
+       - Read access to Balance transactions, PaymentMethods
+  </Step>
+  
+  <Step title="Configure in Paymenter">
+    Navigate to **Admin Panel** → **Extensions** → **Gateways** → **Stripe**
+    
+    Enter your credentials:
+    ```yaml
+    Stripe Restricted Key: rk_live_...
+    Stripe Publishable Key: pk_live_...
+    ```
+  </Step>
+  
+  <Step title="Enable the Gateway">
+    Toggle Stripe to enabled. Paymenter will automatically:
+    - Create a webhook endpoint on Stripe
+    - Configure the webhook secret
+    - Subscribe to payment events
+  </Step>
+</Steps>
+
+<Info>
+  The webhook secret is auto-generated. You can view it in the extension settings after enabling.
+</Info>
+
+### Stripe Configuration Options
+
+| Field | Description | Required |
+|-------|-------------|----------|
+| Stripe Restricted Key | API key with limited permissions | Yes |
+| Stripe Publishable Key | Public key for client-side integration | Yes |
+| Stripe Webhook Secret | Auto-generated webhook verification key | Auto |
+
+### Webhook Events
+
+Paymenter listens for these Stripe webhook events:
+
+- `payment_intent.succeeded` - Payment completed
+- `payment_intent.processing` - Payment processing
+- `payment_intent.payment_failed` - Payment failed
+- `setup_intent.succeeded` - Payment method saved
+- `charge.updated` - Fee information updated
+- `invoice.created` - Subscription invoice created
+- `invoice.payment_succeeded` - Subscription payment succeeded
+- `subscription_schedule.canceled` - Subscription canceled
+
+### Billing Agreements
+
+Stripe supports storing payment methods for automatic renewals:
+
+```php extensions/Gateways/Stripe/Stripe.php
+public function supportsBillingAgreements(): bool
+{
+    return true;
+}
+```
+
+Customers can:
+1. Save cards, bank accounts, or SEPA mandates
+2. Set a default payment method
+3. Automatically charge for renewals
+
+### Testing Stripe
+
+Use Stripe test mode with these test cards:
+
+| Card Number | Scenario |
+|-------------|----------|
+| 4242 4242 4242 4242 | Successful payment |
+| 4000 0025 0000 3155 | Requires authentication (3D Secure) |
+| 4000 0000 0000 9995 | Declined (insufficient funds) |
+
+---
+
+## PayPal Gateway
+
+Accept payments via PayPal accounts and credit cards through PayPal.
+
+### Features
+
+- **PayPal Checkout**: Redirect customers to PayPal
+- **Billing Agreements**: Vault payment methods (requires PayPal approval)
+- **Subscriptions**: Native PayPal subscription support
+- **Webhooks**: Real-time payment notifications
+
+### Configuration
+
+<Steps>
+  <Step title="Create PayPal App">
+    1. Go to [PayPal Developer Dashboard](https://developer.paypal.com/developer/applications)
+    2. Create a new app
+    3. Copy the **Client ID** and **Secret**
+  </Step>
+  
+  <Step title="Create Webhook">
+    1. Go to [PayPal Webhooks](https://developer.paypal.com/developer/webhooks)
+    2. Create a webhook with URL: `https://yourdomain.com/extensions/gateways/paypal/webhook`
+    3. Subscribe to these events:
+       - `PAYMENT.CAPTURE.COMPLETED`
+       - `BILLING.SUBSCRIPTION.CREATED`
+       - `PAYMENT.SALE.COMPLETED`
+       - `VAULT.PAYMENT-TOKEN.DELETED`
+    4. Copy the **Webhook ID**
+  </Step>
+  
+  <Step title="Configure in Paymenter">
+    Navigate to **Admin Panel** → **Extensions** → **Gateways** → **PayPal**
+    
+    ```yaml
+    Client ID: YOUR_CLIENT_ID
+    Client Secret: YOUR_CLIENT_SECRET
+    Webhook ID: YOUR_WEBHOOK_ID
+    Test Mode: ☐ Disabled (enable for sandbox testing)
+    Supports Billing Agreements: ☐ Optional
+    ```
+  </Step>
+</Steps>
+
+### PayPal Configuration Options
+
+| Field | Description | Required |
+|-------|-------------|----------|
+| Client ID | OAuth 2.0 client identifier | Yes |
+| Client Secret | OAuth 2.0 client secret | Yes |
+| Webhook ID | Webhook identifier for verification | Yes |
+| Test Mode | Use PayPal Sandbox environment | No |
+| Supports Billing Agreements | Enable payment vaulting (requires approval) | No |
+
+<Warning>
+  **Billing Agreements** require PayPal to review and approve your application. Most accounts can use standard checkout without this feature.
+</Warning>
+
+### PayPal Test Mode
+
+Enable test mode to use PayPal Sandbox:
+
+1. Create a sandbox account at [PayPal Developer](https://developer.paypal.com/developer/accounts/)
+2. Use sandbox credentials in Paymenter
+3. Test with sandbox buyer accounts
+
+### Payment Flow
+
+PayPal uses redirect-based checkout:
+
+```php extensions/Gateways/PayPal/PayPal.php
+public function pay($invoice, $total)
+{
+    $order = $this->request('post', $url . '/v2/checkout/orders', [
+        'intent' => 'CAPTURE',
+        'purchase_units' => [
+            [
+                'invoice_id' => $invoice->id,
+                'amount' => [
+                    'currency_code' => $invoice->currency_code,
+                    'value' => $total,
+                ],
+            ],
+        ],
+    ]);
+    
+    return view('gateways.paypal::pay', ['order' => $order]);
+}
+```
+
+---
+
+## Mollie Gateway
+
+Mollie provides European payment methods including iDEAL, Bancontact, and SEPA.
+
+### Features
+
+- **European Payment Methods**: iDEAL, Bancontact, SEPA, Giropay
+- **Simple Integration**: Single API key
+- **Webhooks**: Real-time payment status updates
+
+### Configuration
+
+<Steps>
+  <Step title="Get API Key">
+    1. Go to [Mollie Dashboard](https://www.mollie.com/dashboard/)
+    2. Navigate to **Developers** → **API keys**
+    3. Copy your **Live API key** (starts with `live_`)
+  </Step>
+  
+  <Step title="Configure in Paymenter">
+    Navigate to **Admin Panel** → **Extensions** → **Gateways** → **Mollie**
+    
+    ```yaml
+    API Key: live_...
+    ```
+  </Step>
+</Steps>
+
+### Mollie Configuration Options
+
+| Field | Description | Required |
+|-------|-------------|----------|
+| API Key | Mollie API key (live or test) | Yes |
+
+### Webhook Configuration
+
+Mollie webhooks are automatically configured per payment:
+
+```php extensions/Gateways/Mollie/Mollie.php
+public function pay(Invoice $invoice, $total)
+{
+    $response = $this->request('/v2/payments', 'post', [
+        'amount' => [
+            'currency' => $invoice->currency_code,
+            'value' => number_format($total, 2, '.', ''),
+        ],
+        'description' => 'Invoice #' . $invoice->id,
+        'webhookUrl' => route('extensions.gateways.mollie.webhook', $invoice),
+    ]);
+    
+    return $response['_links']['checkout']['href'];
+}
+```
+
+<Info>
+  Each payment gets its own webhook URL, no global webhook configuration needed.
+</Info>
+
+### Testing Mollie
+
+Use test mode with the test API key:
+
+1. Use a test API key (starts with `test_`)
+2. All payments will be in test mode
+3. No real money is charged
+
+---
+
+## Choosing a Payment Gateway
+
+<CardGroup cols={2}>
+  <Card title="Stripe" icon="stripe">
+    **Best for:**
+    - Global businesses
+    - Modern payment methods
+    - Subscription management
+    
+    **Fees:** 2.9% + $0.30 per transaction
+  </Card>
+  
+  <Card title="PayPal" icon="paypal">
+    **Best for:**
+    - Customers with PayPal accounts
+    - Quick setup
+    - Wide recognition
+    
+    **Fees:** 2.9% + $0.30 per transaction
+  </Card>
+  
+  <Card title="Mollie" icon="money-bill">
+    **Best for:**
+    - European customers
+    - Local payment methods
+    - Simple integration
+    
+    **Fees:** Varies by payment method
+  </Card>
+</CardGroup>
+
+## Multiple Gateways
+
+You can enable multiple payment gateways simultaneously:
+
+1. Configure each gateway with its credentials
+2. Enable all desired gateways
+3. Customers choose their preferred method at checkout
+
+<Note>
+  Transaction fees are automatically tracked per gateway for accurate profit reporting.
+</Note>
+
+## Troubleshooting
+
+### Payments Not Processing
+
+<AccordionGroup>
+  <Accordion title="Verify webhook configuration">
+    Check that webhooks are properly configured:
+    - Stripe: Auto-configured, check extension settings
+    - PayPal: Manually created, verify webhook URL
+    - Mollie: Auto-configured per payment
+  </Accordion>
+  
+  <Accordion title="Check API credentials">
+    Ensure you're using:
+    - Live keys (not test keys) in production
+    - Correct permissions on API keys
+    - Valid, non-expired credentials
+  </Accordion>
+  
+  <Accordion title="Review error logs">
+    Check `storage/logs/laravel.log` for:
+    - API request failures
+    - Webhook signature validation errors
+    - Permission denied errors
+  </Accordion>
+</AccordionGroup>
+
+### Testing Before Going Live
+
+1. **Stripe**: Use test mode with test cards
+2. **PayPal**: Use sandbox mode with test accounts
+3. **Mollie**: Use test API key
+
+<Warning>
+  Always test payment flows thoroughly before processing real customer payments.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Server Integrations" icon="server" href="/extensions/server-integrations">
+    Set up automatic server provisioning
+  </Card>
+  <Card title="Creating Extensions" icon="code" href="/extensions/creating-extensions">
+    Build custom payment gateway integrations
+  </Card>
+</CardGroup>

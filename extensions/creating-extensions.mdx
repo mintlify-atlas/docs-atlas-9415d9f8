@@ -1,0 +1,982 @@
+---
+title: 'Creating Extensions'
+description: 'Developer guide for building custom Paymenter extensions'
+---
+
+## Overview
+
+Paymenter's extension system allows you to extend functionality by creating custom payment gateways, server integrations, or general-purpose extensions.
+
+## Extension Types
+
+<CardGroup cols={3}>
+  <Card title="Gateway" icon="credit-card">
+    Payment processor integrations
+  </Card>
+  <Card title="Server" icon="server">
+    Control panel integrations
+  </Card>
+  <Card title="Other" icon="puzzle-piece">
+    General functionality extensions
+  </Card>
+</CardGroup>
+
+## Creating an Extension
+
+### Using the CLI
+
+Paymenter includes an Artisan command to scaffold extensions:
+
+```bash
+php artisan extension:create
+```
+
+You'll be prompted for:
+- Extension name
+- Extension type (Gateway, Server, or Other)
+- Author information
+
+This creates the extension structure in `extensions/`.
+
+### Manual Creation
+
+Alternatively, create the structure manually:
+
+```
+extensions/
+└── Gateways/  (or Servers/ or Others/)
+    └── YourExtension/
+        ├── YourExtension.php    # Main class
+        ├── routes.php           # Optional routes
+        ├── migrations/          # Optional database migrations
+        └── resources/
+            └── views/           # Optional Blade templates
+```
+
+---
+
+## Gateway Extension
+
+Payment gateway extensions process payments and handle webhooks.
+
+### Basic Structure
+
+```php extensions/Gateways/MyGateway/MyGateway.php
+<?php
+
+namespace Paymenter\Extensions\Gateways\MyGateway;
+
+use App\Attributes\ExtensionMeta;
+use App\Classes\Extension\Gateway;
+use App\Helpers\ExtensionHelper;
+use App\Models\Invoice;
+use Illuminate\Http\Request;
+
+#[ExtensionMeta(
+    name: 'My Payment Gateway',
+    description: 'Accept payments via My Gateway',
+    version: '1.0.0',
+    author: 'Your Name',
+    url: 'https://example.com/docs',
+    icon: 'data:image/svg+xml;base64,...'
+)]
+class MyGateway extends Gateway
+{
+    /**
+     * Get configuration fields
+     */
+    public function getConfig($values = [])
+    {
+        return [
+            [
+                'name' => 'api_key',
+                'label' => 'API Key',
+                'type' => 'text',
+                'required' => true,
+                'encrypted' => true,
+            ],
+            [
+                'name' => 'webhook_secret',
+                'label' => 'Webhook Secret',
+                'type' => 'text',
+                'required' => false,
+            ],
+        ];
+    }
+
+    /**
+     * Called when extension is enabled
+     */
+    public function boot()
+    {
+        // Register routes
+        require __DIR__ . '/routes.php';
+    }
+
+    /**
+     * Process payment for invoice
+     * 
+     * @return string|\Illuminate\View\View
+     */
+    public function pay(Invoice $invoice, $total)
+    {
+        // Create payment on gateway
+        $payment = $this->createPayment([
+            'amount' => $total * 100, // Convert to cents
+            'currency' => $invoice->currency_code,
+            'metadata' => [
+                'invoice_id' => $invoice->id,
+            ],
+        ]);
+
+        // Return redirect URL or view
+        return $payment->checkout_url;
+        // OR
+        // return view('gateways.mygateway::pay', ['payment' => $payment]);
+    }
+
+    /**
+     * Handle webhook from payment gateway
+     */
+    public function webhook(Request $request)
+    {
+        // Verify webhook signature
+        if (!$this->verifyWebhook($request)) {
+            return response()->json(['error' => 'Invalid signature'], 400);
+        }
+
+        $payload = $request->json()->all();
+
+        // Handle different event types
+        switch ($payload['event']) {
+            case 'payment.succeeded':
+                ExtensionHelper::addPayment(
+                    $payload['metadata']['invoice_id'],
+                    'MyGateway',
+                    $payload['amount'] / 100,
+                    $payload['fee'] / 100,
+                    $payload['id']
+                );
+                break;
+
+            case 'payment.failed':
+                ExtensionHelper::addFailedPayment(
+                    $payload['metadata']['invoice_id'],
+                    'MyGateway',
+                    $payload['amount'] / 100,
+                    $payload['fee'] / 100,
+                    $payload['id']
+                );
+                break;
+        }
+
+        return response()->json(['status' => 'success']);
+    }
+
+    /**
+     * Make API request to gateway
+     */
+    private function request($method, $endpoint, $data = [])
+    {
+        return Http::withHeaders([
+            'Authorization' => 'Bearer ' . $this->config('api_key'),
+            'Accept' => 'application/json',
+        ])->$method('https://api.gateway.com' . $endpoint, $data)
+          ->throw()
+          ->object();
+    }
+
+    /**
+     * Verify webhook signature
+     */
+    private function verifyWebhook(Request $request)
+    {
+        $signature = $request->header('X-Signature');
+        $payload = $request->getContent();
+        $secret = $this->config('webhook_secret');
+
+        $expectedSignature = hash_hmac('sha256', $payload, $secret);
+
+        return hash_equals($expectedSignature, $signature);
+    }
+}
+```
+
+### Billing Agreements (Optional)
+
+Support storing payment methods for automatic renewals:
+
+```php
+/**
+ * Does this gateway support billing agreements?
+ */
+public function supportsBillingAgreements(): bool
+{
+    return true;
+}
+
+/**
+ * Create a billing agreement
+ */
+public function createBillingAgreement(User $user)
+{
+    // Create setup/authorization on gateway
+    $setup = $this->request('post', '/setup', [
+        'customer_id' => $user->id,
+        'return_url' => route('account.payment-methods'),
+    ]);
+
+    // Return redirect URL or view
+    return $setup->authorization_url;
+}
+
+/**
+ * Cancel a billing agreement
+ */
+public function cancelBillingAgreement(BillingAgreement $billingAgreement): bool
+{
+    $this->request('delete', '/payment-methods/' . $billingAgreement->external_reference);
+    return true;
+}
+
+/**
+ * Charge a billing agreement
+ */
+public function charge(Invoice $invoice, $total, BillingAgreement $billingAgreement)
+{
+    $payment = $this->request('post', '/charges', [
+        'amount' => $total * 100,
+        'currency' => $invoice->currency_code,
+        'payment_method_id' => $billingAgreement->external_reference,
+        'metadata' => ['invoice_id' => $invoice->id],
+    ]);
+
+    return true;
+}
+```
+
+### Routes
+
+Define webhook and callback routes:
+
+```php extensions/Gateways/MyGateway/routes.php
+<?php
+
+use Illuminate\Support\Facades\Route;
+use Paymenter\Extensions\Gateways\MyGateway\MyGateway;
+
+Route::post('/extensions/gateways/mygateway/webhook', function () {
+    return app(MyGateway::class)->webhook(request());
+})->name('extensions.gateways.mygateway.webhook');
+
+Route::get('/extensions/gateways/mygateway/callback', function () {
+    return app(MyGateway::class)->callback(request());
+})->name('extensions.gateways.mygateway.callback');
+```
+
+---
+
+## Server Extension
+
+Server extensions automate provisioning on hosting control panels.
+
+### Basic Structure
+
+```php extensions/Servers/MyPanel/MyPanel.php
+<?php
+
+namespace Paymenter\Extensions\Servers\MyPanel;
+
+use App\Attributes\ExtensionMeta;
+use App\Classes\Extension\Server;
+use App\Models\Service;
+use Exception;
+
+#[ExtensionMeta(
+    name: 'My Control Panel',
+    description: 'Provision servers on My Panel',
+    version: '1.0.0',
+    author: 'Your Name'
+)]
+class MyPanel extends Server
+{
+    /**
+     * Get server configuration fields
+     */
+    public function getConfig($values = [])
+    {
+        return [
+            [
+                'name' => 'host',
+                'label' => 'Panel URL',
+                'type' => 'text',
+                'validation' => 'url',
+                'required' => true,
+            ],
+            [
+                'name' => 'api_key',
+                'label' => 'API Key',
+                'type' => 'text',
+                'encrypted' => true,
+                'required' => true,
+            ],
+        ];
+    }
+
+    /**
+     * Get product-specific configuration
+     */
+    public function getProductConfig($values = [])
+    {
+        // Fetch packages from control panel
+        $packages = $this->request('get', '/api/packages');
+        
+        $packageOptions = [];
+        foreach ($packages as $package) {
+            $packageOptions[] = [
+                'value' => $package->id,
+                'label' => $package->name,
+            ];
+        }
+
+        return [
+            [
+                'name' => 'package_id',
+                'label' => 'Package',
+                'type' => 'select',
+                'options' => $packageOptions,
+                'required' => true,
+            ],
+            [
+                'name' => 'disk_limit',
+                'label' => 'Disk Space',
+                'type' => 'number',
+                'suffix' => 'GB',
+                'required' => true,
+            ],
+        ];
+    }
+
+    /**
+     * Get checkout configuration (customer input)
+     */
+    public function getCheckoutConfig()
+    {
+        return [
+            [
+                'name' => 'domain',
+                'label' => 'Domain',
+                'type' => 'text',
+                'required' => true,
+                'placeholder' => 'example.com',
+            ],
+        ];
+    }
+
+    /**
+     * Test server connection and credentials
+     */
+    public function testConfig(): bool|string
+    {
+        try {
+            $this->request('get', '/api/status');
+            return true;
+        } catch (Exception $e) {
+            return $e->getMessage();
+        }
+    }
+
+    /**
+     * Create a new server
+     */
+    public function createServer(Service $service, $settings, $properties)
+    {
+        $user = $service->user;
+
+        // Create account on control panel
+        $account = $this->request('post', '/api/accounts', [
+            'email' => $user->email,
+            'domain' => $properties['domain'],
+            'package_id' => $settings['package_id'],
+            'disk_limit' => $settings['disk_limit'],
+        ]);
+
+        // Store account ID for future operations
+        $service->properties()->updateOrCreate(
+            ['key' => 'account_id'],
+            ['name' => 'Account ID', 'value' => $account->id]
+        );
+
+        // Return optional metadata
+        return [
+            'account_id' => $account->id,
+            'username' => $account->username,
+            'password' => $account->password,
+        ];
+    }
+
+    /**
+     * Suspend a server
+     */
+    public function suspendServer(Service $service, $settings, $properties)
+    {
+        if (!isset($properties['account_id'])) {
+            throw new Exception('Account ID not found');
+        }
+
+        $this->request('post', '/api/accounts/' . $properties['account_id'] . '/suspend');
+
+        return true;
+    }
+
+    /**
+     * Unsuspend a server
+     */
+    public function unsuspendServer(Service $service, $settings, $properties)
+    {
+        if (!isset($properties['account_id'])) {
+            throw new Exception('Account ID not found');
+        }
+
+        $this->request('post', '/api/accounts/' . $properties['account_id'] . '/unsuspend');
+
+        return true;
+    }
+
+    /**
+     * Upgrade server resources
+     */
+    public function upgradeServer(Service $service, $settings, $properties)
+    {
+        if (!isset($properties['account_id'])) {
+            throw new Exception('Account ID not found');
+        }
+
+        $this->request('patch', '/api/accounts/' . $properties['account_id'], [
+            'package_id' => $settings['package_id'],
+            'disk_limit' => $settings['disk_limit'],
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Terminate a server
+     */
+    public function terminateServer(Service $service, $settings, $properties)
+    {
+        if (!isset($properties['account_id'])) {
+            throw new Exception('Account ID not found');
+        }
+
+        $this->request('delete', '/api/accounts/' . $properties['account_id']);
+
+        // Clean up properties
+        $service->properties()->where('key', 'account_id')->delete();
+
+        return true;
+    }
+
+    /**
+     * Get customer actions (login buttons, etc.)
+     */
+    public function getActions(Service $service, $settings, $properties): array
+    {
+        if (!isset($properties['account_id'])) {
+            return [];
+        }
+
+        return [
+            [
+                'label' => 'Access Panel',
+                'type' => 'button',
+                'function' => 'getLoginUrl',
+            ],
+        ];
+    }
+
+    /**
+     * Generate SSO login URL
+     */
+    public function getLoginUrl(Service $service, $settings, $properties): string
+    {
+        if (!isset($properties['account_id'])) {
+            throw new Exception('Account ID not found');
+        }
+
+        $token = $this->request('post', '/api/accounts/' . $properties['account_id'] . '/login-token');
+
+        return $this->config('host') . '/login?token=' . $token->token;
+    }
+
+    /**
+     * Make API request to control panel
+     */
+    private function request($method, $endpoint, $data = [])
+    {
+        $url = rtrim($this->config('host'), '/') . $endpoint;
+
+        return Http::withHeaders([
+            'Authorization' => 'Bearer ' . $this->config('api_key'),
+            'Accept' => 'application/json',
+        ])->$method($url, $data)
+          ->throw()
+          ->object();
+    }
+}
+```
+
+---
+
+## Extension Helper Methods
+
+Use `ExtensionHelper` for common operations:
+
+### Recording Payments
+
+```php
+use App\Helpers\ExtensionHelper;
+
+// Successful payment
+ExtensionHelper::addPayment(
+    $invoiceId,
+    'GatewayName',
+    $amount,
+    $fee,           // Optional
+    $transactionId  // Optional
+);
+
+// Processing payment
+ExtensionHelper::addProcessingPayment(
+    $invoiceId,
+    'GatewayName',
+    $amount,
+    $fee,
+    $transactionId
+);
+
+// Failed payment
+ExtensionHelper::addFailedPayment(
+    $invoiceId,
+    'GatewayName',
+    $amount,
+    $fee,
+    $transactionId
+);
+```
+
+### Managing Billing Agreements
+
+```php
+// Create billing agreement
+ExtensionHelper::makeBillingAgreement(
+    $user,
+    'GatewayName',
+    'Visa **** 4242',     // Display name
+    'pm_1234567890',      // External reference
+    'card',               // Type
+    '2025-12-31'          // Expiry (optional)
+);
+```
+
+---
+
+## Configuration Field Types
+
+Supported field types in `getConfig()` and `getProductConfig()`:
+
+### Text Input
+
+```php
+[
+    'name' => 'field_name',
+    'label' => 'Field Label',
+    'type' => 'text',
+    'placeholder' => 'Enter value...',
+    'description' => 'Help text',
+    'required' => true,
+    'validation' => 'url',  // Laravel validation rules
+    'encrypted' => true,     // Store encrypted
+]
+```
+
+### Number Input
+
+```php
+[
+    'name' => 'memory',
+    'label' => 'Memory',
+    'type' => 'number',
+    'suffix' => 'MB',
+    'min_value' => 0,
+    'max_value' => 10000,
+    'required' => true,
+]
+```
+
+### Select Dropdown
+
+```php
+[
+    'name' => 'package',
+    'label' => 'Package',
+    'type' => 'select',
+    'options' => [
+        ['value' => '1', 'label' => 'Bronze'],
+        ['value' => '2', 'label' => 'Silver'],
+        ['value' => '3', 'label' => 'Gold'],
+    ],
+    'required' => true,
+    'live' => true,  // Re-fetch config when this changes
+]
+```
+
+### Checkbox
+
+```php
+[
+    'name' => 'enabled',
+    'label' => 'Enable Feature',
+    'type' => 'checkbox',
+    'description' => 'Enable this feature',
+]
+```
+
+### Tags (Array Input)
+
+```php
+[
+    'name' => 'allowed_ips',
+    'label' => 'Allowed IPs',
+    'type' => 'tags',
+    'database_type' => 'array',
+]
+```
+
+---
+
+## Lifecycle Hooks
+
+Extensions can hook into installation/upgrade events:
+
+```php
+/**
+ * Called when extension is installed
+ */
+public function installed()
+{
+    // Run migrations
+    ExtensionHelper::runMigrations('extensions/Gateways/MyGateway/migrations');
+    
+    // Initialize settings
+    // Create webhooks
+}
+
+/**
+ * Called when extension is uninstalled
+ */
+public function uninstalled()
+{
+    // Rollback migrations
+    ExtensionHelper::rollbackMigrations('extensions/Gateways/MyGateway/migrations');
+    
+    // Delete webhooks
+}
+
+/**
+ * Called when extension is updated
+ */
+public function upgraded($oldVersion = null)
+{
+    // Run new migrations
+    // Update settings
+}
+
+/**
+ * Called on every request (if enabled)
+ */
+public function boot()
+{
+    // Register routes
+    require __DIR__ . '/routes.php';
+    
+    // Register views
+    View::addNamespace('myextension', __DIR__ . '/resources/views');
+    
+    // Register event listeners
+    Event::listen(InvoicePaid::class, function($event) {
+        // Handle event
+    });
+}
+```
+
+---
+
+## Database Migrations
+
+Extensions can include migrations:
+
+```php extensions/Gateways/MyGateway/migrations/001_create_custom_table.php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::create('mygateway_transactions', function (Blueprint $table) {
+            $table->id();
+            $table->string('external_id');
+            $table->foreignId('invoice_id')->constrained();
+            $table->timestamps();
+        });
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists('mygateway_transactions');
+    }
+};
+```
+
+Run migrations in `installed()` hook:
+
+```php
+public function installed()
+{
+    ExtensionHelper::runMigrations('extensions/Gateways/MyGateway/migrations');
+}
+```
+
+---
+
+## Views and Templates
+
+Extensions can include Blade templates:
+
+```php extensions/Gateways/MyGateway/resources/views/pay.blade.php
+@extends('layouts.client')
+
+@section('content')
+<div class="max-w-lg mx-auto">
+    <h1>Complete Payment</h1>
+    
+    <div id="payment-element">
+        <!-- Payment form -->
+    </div>
+    
+    <button id="submit">Pay {{ $invoice->currency }} {{ $total }}</button>
+</div>
+
+@push('scripts')
+<script src="https://js.gateway.com/v1/"></script>
+<script>
+    // Initialize payment form
+    const gateway = Gateway('{{ $publishableKey }}');
+    gateway.mount('#payment-element');
+</script>
+@endpush
+@endsection
+```
+
+Return view from `pay()` method:
+
+```php
+public function pay(Invoice $invoice, $total)
+{
+    return view('mygateway::pay', [
+        'invoice' => $invoice,
+        'total' => $total,
+        'publishableKey' => $this->config('publishable_key'),
+    ]);
+}
+```
+
+---
+
+## Testing Extensions
+
+### Unit Testing
+
+Create tests in your extension directory:
+
+```php extensions/Gateways/MyGateway/tests/MyGatewayTest.php
+<?php
+
+namespace Tests\Extensions\Gateways\MyGateway;
+
+use Tests\TestCase;
+use Paymenter\Extensions\Gateways\MyGateway\MyGateway;
+
+class MyGatewayTest extends TestCase
+{
+    public function test_payment_creation()
+    {
+        $gateway = new MyGateway([
+            'api_key' => 'test_key',
+        ]);
+        
+        // Test payment logic
+    }
+}
+```
+
+### Manual Testing
+
+1. Install extension in Paymenter
+2. Configure with test credentials
+3. Create test product
+4. Place test order
+5. Verify functionality
+
+---
+
+## Distribution
+
+### Packaging
+
+Package your extension as a ZIP:
+
+```bash
+cd extensions/Gateways/MyGateway
+zip -r MyGateway.zip .
+```
+
+### Installation
+
+Users install by:
+
+1. Extracting ZIP to `extensions/` directory
+2. Running `composer dump-autoload`
+3. Configuring in admin panel
+
+### Composer Package
+
+Publish as Composer package:
+
+```json composer.json
+{
+    "name": "vendor/paymenter-mygateway",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Paymenter\\Extensions\\Gateways\\MyGateway\\": "src/"
+        }
+    }
+}
+```
+
+---
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Security">
+    - Store API keys encrypted (`'encrypted' => true`)
+    - Validate webhook signatures
+    - Use HTTPS for all API requests
+    - Sanitize user input
+    - Never log sensitive data
+  </Accordion>
+  
+  <Accordion title="Error Handling">
+    - Use try-catch for API requests
+    - Return meaningful error messages
+    - Log errors for debugging
+    - Handle rate limits gracefully
+  </Accordion>
+  
+  <Accordion title="Performance">
+    - Cache API responses when possible
+    - Use queues for long-running tasks
+    - Minimize database queries
+    - Implement timeouts for HTTP requests
+  </Accordion>
+  
+  <Accordion title="User Experience">
+    - Provide clear configuration instructions
+    - Validate configuration before saving
+    - Show helpful error messages
+    - Document webhook URLs
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## API Reference
+
+Key classes and methods:
+
+### Base Classes
+
+- `App\Classes\Extension\Extension` - Base extension class
+- `App\Classes\Extension\Gateway` - Payment gateway base
+- `App\Classes\Extension\Server` - Server integration base
+
+### Helper Classes
+
+- `App\Helpers\ExtensionHelper` - Extension utilities
+- `App\Attributes\ExtensionMeta` - Metadata attribute
+
+### Methods
+
+**Extension Base:**
+- `getConfig($values)` - Configuration fields
+- `config($key)` - Get config value
+- `installed()` - Installation hook
+- `uninstalled()` - Uninstallation hook
+- `upgraded($oldVersion)` - Upgrade hook
+- `boot()` - Boot hook
+
+**Gateway:**
+- `pay(Invoice $invoice, $total)` - Process payment
+- `supportsBillingAgreements()` - Supports saving payment methods
+- `createBillingAgreement(User $user)` - Create billing agreement
+- `cancelBillingAgreement(BillingAgreement $ba)` - Cancel agreement
+- `charge(Invoice $invoice, $total, BillingAgreement $ba)` - Charge agreement
+
+**Server:**
+- `getProductConfig($values)` - Product configuration
+- `getCheckoutConfig()` - Checkout fields
+- `testConfig()` - Test connection
+- `createServer(Service, $settings, $properties)` - Create service
+- `suspendServer(Service, $settings, $properties)` - Suspend service
+- `unsuspendServer(Service, $settings, $properties)` - Unsuspend service
+- `upgradeServer(Service, $settings, $properties)` - Upgrade service
+- `terminateServer(Service, $settings, $properties)` - Delete service
+- `getActions(Service, $settings, $properties)` - Customer actions
+
+---
+
+## Examples
+
+Study existing extensions:
+
+- **Simple Gateway**: `extensions/Gateways/Mollie/`
+- **Advanced Gateway**: `extensions/Gateways/Stripe/`
+- **Simple Server**: `extensions/Servers/CPanel/`
+- **Advanced Server**: `extensions/Servers/Pterodactyl/`
+
+<Info>
+  All built-in extensions are located in `extensions/` and serve as reference implementations.
+</Info>
+
+## Need Help?
+
+<CardGroup cols={2}>
+  <Card title="Community Support" icon="discord" href="https://discord.gg/paymenter">
+    Join our Discord for help
+  </Card>
+  <Card title="GitHub" icon="github" href="https://github.com/paymenter/paymenter">
+    Report issues and contribute
+  </Card>
+  <Card title="Documentation" icon="book" href="/introduction">
+    Browse full documentation
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Explore the API
+  </Card>
+</CardGroup>

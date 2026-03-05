@@ -1,0 +1,561 @@
+---
+title: 'Server Integrations'
+description: 'Automate server provisioning with control panel integrations'
+---
+
+## Available Server Integrations
+
+Paymenter supports automatic server provisioning for popular hosting control panels:
+
+<CardGroup cols={3}>
+  <Card title="Pterodactyl" icon="gamepad">
+    Game server management panel
+  </Card>
+  <Card title="cPanel" icon="cpanel">
+    Web hosting control panel
+  </Card>
+  <Card title="Plesk" icon="server">
+    Web hosting platform
+  </Card>
+  <Card title="DirectAdmin" icon="server">
+    Web hosting control panel
+  </Card>
+  <Card title="Enhance" icon="server">
+    Modern hosting platform
+  </Card>
+  <Card title="Virtualizor" icon="box">
+    VPS management
+  </Card>
+  <Card title="Convoy" icon="server">
+    Server management panel
+  </Card>
+  <Card title="Virtfusion" icon="server">
+    VPS management platform
+  </Card>
+</CardGroup>
+
+## How Server Integrations Work
+
+Server integrations automate the hosting lifecycle:
+
+1. **Customer Orders**: Customer selects a product linked to a server integration
+2. **Automatic Provisioning**: Service is created on the control panel
+3. **Lifecycle Management**: Suspend, unsuspend, upgrade, or terminate services
+4. **Customer Access**: Direct login links to control panels
+
+<Info>
+  Server integrations are assigned to **Products**, not enabled globally like payment gateways.
+</Info>
+
+---
+
+## Pterodactyl Integration
+
+Pterodactyl is a popular open-source game server management panel.
+
+### Features
+
+- **Multi-node Support**: Deploy across multiple nodes and locations
+- **Resource Allocation**: CPU, RAM, disk, databases, backups
+- **Port Management**: Automatic or custom port assignment
+- **SSO Login**: Direct login links for customers
+- **Upgrade Support**: Modify resources dynamically
+
+### Configuration
+
+<Steps>
+  <Step title="Create API Key">
+    1. Log into your Pterodactyl panel as admin
+    2. Go to **Application API** in admin area
+    3. Create a new API key with **Read & Write** permissions
+    4. Copy the API key
+  </Step>
+  
+  <Step title="Add Server in Paymenter">
+    Navigate to **Admin Panel** → **Extensions** → **Servers** → **Pterodactyl**
+    
+    ```yaml
+    Pterodactyl URL: https://panel.yourdomain.com
+    API Key: ptla_...
+    ```
+  </Step>
+  
+  <Step title="Test Connection">
+    Click **Test Configuration** to verify:
+    - API key is valid
+    - Panel is accessible
+    - Permissions are correct
+  </Step>
+</Steps>
+
+### Product Configuration
+
+When creating a product with Pterodactyl, configure:
+
+```php
+[
+    'location_ids' => [1, 2],        // Allowed locations
+    'node' => 3,                      // Specific node (optional)
+    'nest_id' => 1,                   // Egg nest (e.g., Minecraft)
+    'egg_id' => 5,                    // Specific egg
+    'memory' => 2048,                 // RAM in MiB
+    'swap' => 0,                      // Swap in MiB (-1 = unlimited)
+    'disk' => 10240,                  // Disk in MiB
+    'cpu' => 200,                     // CPU limit (%)
+    'io' => 500,                      // IO weight (10-1000)
+    'databases' => 2,                 // Database limit
+    'backups' => 5,                   // Backup limit
+    'additional_allocations' => 0,    // Extra ports
+]
+```
+
+### Resource Limits
+
+| Resource | Description | Special Values |
+|----------|-------------|----------------|
+| Memory | RAM allocation in MiB | 0 = unlimited |
+| Swap | Swap space in MiB | -1 = unlimited, 0 = disabled |
+| Disk | Storage in MiB | 0 = unlimited |
+| CPU | CPU limit as percentage | 0 = unlimited, 100 = 1 core |
+| IO Weight | Disk I/O priority | 10-1000 (500 = default) |
+
+### Advanced: Port Arrays
+
+For games requiring multiple ports, use port arrays:
+
+```json
+{
+  "SERVER_PORT": 25565,
+  "QUERY_PORT": 25575,
+  "RCON_PORT": 25576,
+  "NONE": [25577, 25578]
+}
+```
+
+- **Named ports**: Assigned to environment variables
+- **NONE array**: Additional allocations without env vars
+
+<Warning>
+  Port arrays require manual configuration. Only use if you understand port allocation.
+</Warning>
+
+### Server Lifecycle
+
+Pterodactyl integration supports:
+
+```php extensions/Servers/Pterodactyl/Pterodactyl.php
+// Create server
+public function createServer(Service $service, $settings, $properties)
+
+// Suspend server (stops and prevents startup)
+public function suspendServer(Service $service, $settings, $properties)
+
+// Unsuspend server
+public function unsuspendServer(Service $service, $settings, $properties)
+
+// Upgrade resources
+public function upgradeServer(Service $service, $settings, $properties)
+
+// Delete server
+public function terminateServer(Service $service, $settings, $properties)
+```
+
+---
+
+## cPanel Integration
+
+cPanel is the most popular web hosting control panel.
+
+### Features
+
+- **Package-based**: Uses existing cPanel packages
+- **Automatic Account Creation**: Creates cPanel accounts
+- **SSO Login**: Direct login links
+- **Domain Management**: Customer provides domain at checkout
+
+### Configuration
+
+<Steps>
+  <Step title="Generate WHM API Key">
+    1. Log into WHM as root
+    2. Go to **Development** → **Manage API Tokens**
+    3. Create a new token with full permissions
+    4. Copy the token
+  </Step>
+  
+  <Step title="Add Server in Paymenter">
+    ```yaml
+    Hostname: https://server.yourdomain.com:2087
+    Username: root
+    API Key: YOUR_WHM_TOKEN
+    ```
+  </Step>
+</Steps>
+
+### cPanel Configuration Options
+
+| Field | Description | Required |
+|-------|-------------|----------|
+| Hostname | WHM URL with port 2087 | Yes |
+| Username | WHM username (usually root) | Yes |
+| API Key | WHM API token | Yes |
+
+### Product Configuration
+
+Select an existing cPanel package:
+
+```yaml
+Package: bronze  # Must exist in WHM
+```
+
+<Info>
+  Create packages in WHM first, then select them in Paymenter products.
+</Info>
+
+### Checkout Options
+
+Customers provide their domain at checkout:
+
+```php extensions/Servers/CPanel/CPanel.php
+public function getCheckoutConfig()
+{
+    return [
+        [
+            'name' => 'domain',
+            'type' => 'text',
+            'label' => 'Domain',
+            'required' => true,
+            'placeholder' => 'domain.com',
+        ],
+    ];
+}
+```
+
+### Username Generation
+
+cPanel usernames are automatically generated:
+
+```php
+$username = Str::random();
+// Ensure first character is not a number
+if (is_numeric($username[0])) {
+    $username = 'a' . substr($username, 1);
+}
+```
+
+---
+
+## Plesk Integration
+
+Plesk is a comprehensive web hosting platform.
+
+### Configuration
+
+<Steps>
+  <Step title="Create API Key">
+    1. Log into Plesk
+    2. Go to **Tools & Settings** → **API Keys**
+    3. Create new key with full access
+  </Step>
+  
+  <Step title="Add Server in Paymenter">
+    ```yaml
+    Hostname: https://server.yourdomain.com:8443
+    API Key: YOUR_PLESK_API_KEY
+    ```
+  </Step>
+</Steps>
+
+---
+
+## DirectAdmin Integration
+
+DirectAdmin is a lightweight control panel.
+
+### Configuration
+
+<Steps>
+  <Step title="Enable Login Keys">
+    1. Log into DirectAdmin as admin
+    2. Enable API access
+    3. Create login key
+  </Step>
+  
+  <Step title="Add Server in Paymenter">
+    ```yaml
+    Hostname: https://server.yourdomain.com:2222
+    Username: admin
+    Login Key: YOUR_LOGIN_KEY
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Enhance Integration
+
+Enhance is a modern hosting control panel.
+
+### Features
+
+- **Modern API**: RESTful JSON API
+- **Multi-server Support**: Manage multiple servers
+- **Automated SSL**: Let's Encrypt integration
+
+### Configuration
+
+<Steps>
+  <Step title="Get API Credentials">
+    1. Log into Enhance
+    2. Go to settings and create API token
+  </Step>
+  
+  <Step title="Add Server in Paymenter">
+    ```yaml
+    API URL: https://api.enhance.com
+    API Token: YOUR_TOKEN
+    Organization ID: YOUR_ORG_ID
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Virtualizor Integration
+
+Virtualizor manages KVM, Xen, OpenVZ, and LXC virtual machines.
+
+### Configuration
+
+```yaml
+Hostname: https://virt.yourdomain.com:4085
+API Key: YOUR_API_KEY
+API Password: YOUR_API_PASSWORD
+```
+
+---
+
+## Convoy Integration
+
+Convoy is a modern server management panel.
+
+### Configuration
+
+```yaml
+Panel URL: https://convoy.yourdomain.com
+API Key: YOUR_API_KEY
+```
+
+---
+
+## Virtfusion Integration
+
+Virtfusion is a VPS management platform.
+
+### Configuration
+
+```yaml
+API URL: https://api.virtfusion.com
+API Token: YOUR_TOKEN
+Server Group ID: 1
+```
+
+---
+
+## Assigning Servers to Products
+
+Server integrations are assigned at the product level:
+
+<Steps>
+  <Step title="Create/Edit Product">
+    Go to **Admin Panel** → **Products** → **Create/Edit**
+  </Step>
+  
+  <Step title="Select Server Integration">
+    Choose the server integration from the dropdown
+  </Step>
+  
+  <Step title="Configure Product Settings">
+    Fill in server-specific configuration:
+    - Resource limits
+    - Package selection
+    - Node/location preferences
+  </Step>
+  
+  <Step title="Save Product">
+    The product is now linked to the server integration
+  </Step>
+</Steps>
+
+<Note>
+  One product can only use one server integration, but you can create multiple products using the same server.
+</Note>
+
+## Server Lifecycle Management
+
+All server integrations support these operations:
+
+### Create
+
+Triggered when:
+- Order is paid
+- Admin manually provisions service
+
+```php
+public function createServer(Service $service, $settings, $properties)
+{
+    // Create account on control panel
+    // Return any metadata (server ID, login URL, etc.)
+}
+```
+
+### Suspend
+
+Triggered when:
+- Invoice is overdue
+- Admin suspends service
+
+```php
+public function suspendServer(Service $service, $settings, $properties)
+{
+    // Disable account on control panel
+}
+```
+
+### Unsuspend
+
+Triggered when:
+- Overdue invoice is paid
+- Admin unsuspends service
+
+```php
+public function unsuspendServer(Service $service, $settings, $properties)
+{
+    // Re-enable account on control panel
+}
+```
+
+### Upgrade
+
+Triggered when:
+- Customer upgrades to higher plan
+- Admin modifies service
+
+```php
+public function upgradeServer(Service $service, $settings, $properties)
+{
+    // Update resources on control panel
+}
+```
+
+### Terminate
+
+Triggered when:
+- Service cancellation takes effect
+- Admin deletes service
+
+```php
+public function terminateServer(Service $service, $settings, $properties)
+{
+    // Delete account from control panel
+}
+```
+
+## Customer Access
+
+Provide customers with direct access:
+
+```php
+public function getActions(Service $service, $settings, $properties): array
+{
+    return [
+        [
+            'label' => 'Access Panel',
+            'type' => 'button',
+            'function' => 'getLoginUrl',
+        ],
+    ];
+}
+
+public function getLoginUrl(Service $service, $settings, $properties): string
+{
+    // Generate SSO login URL
+    return 'https://panel.example.com/sso?token=...';
+}
+```
+
+<Info>
+  Login buttons appear in the customer's service view in the client area.
+</Info>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Connection Failed">
+    - Verify the panel URL is correct with proper port
+    - Check firewall allows connections from Paymenter server
+    - Ensure SSL certificate is valid (or disable verification for testing)
+  </Accordion>
+  
+  <Accordion title="Authentication Error">
+    - Verify API key/token is correct
+    - Check API key has necessary permissions
+    - For WHM/cPanel, ensure root access or reseller permissions
+  </Accordion>
+  
+  <Accordion title="Service Not Created">
+    - Check `storage/logs/laravel.log` for detailed errors
+    - Verify product configuration is complete
+    - Ensure control panel has available resources
+    - For cPanel: Verify package exists
+    - For Pterodactyl: Verify node/location has available allocations
+  </Accordion>
+  
+  <Accordion title="Upgrade Not Working">
+    - Some panels don't support all upgrade operations
+    - Check if the integration implements `upgradeServer()`
+    - Verify new package/resources exist on control panel
+  </Accordion>
+</AccordionGroup>
+
+## Testing Server Integrations
+
+<Steps>
+  <Step title="Test Connection">
+    Use the **Test Configuration** button in extension settings
+  </Step>
+  
+  <Step title="Create Test Product">
+    Create a product with minimal resources for testing
+  </Step>
+  
+  <Step title="Place Test Order">
+    - Create a test order as admin
+    - Mark as paid manually
+    - Verify service is created on control panel
+  </Step>
+  
+  <Step title="Test Lifecycle">
+    - Suspend the service
+    - Unsuspend the service
+    - Upgrade to different plan
+    - Terminate the service
+    
+    Verify each action on the control panel.
+  </Step>
+</Steps>
+
+<Warning>
+  Always test on a development server before using in production with real customers.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Creating Extensions" icon="code" href="/extensions/creating-extensions">
+    Build your own server integration
+  </Card>
+  <Card title="API Documentation" icon="book" href="/api/overview">
+    Integrate with Paymenter API
+  </Card>
+</CardGroup>

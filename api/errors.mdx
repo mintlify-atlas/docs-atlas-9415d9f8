@@ -1,0 +1,280 @@
+---
+title: Error Handling
+description: Understanding API error responses and status codes
+---
+
+The Paymenter API uses conventional HTTP response codes to indicate the success or failure of an API request. Errors include detailed messages to help you diagnose issues.
+
+## HTTP Status Codes
+
+Paymenter uses standard HTTP status codes:
+
+### Success Codes (2xx)
+
+- **200 OK** - Request succeeded
+- **201 Created** - Resource created successfully
+- **204 No Content** - Request succeeded with no response body (typically for DELETE operations)
+
+### Client Error Codes (4xx)
+
+- **400 Bad Request** - Invalid request parameters or malformed JSON
+- **401 Unauthorized** - Missing or invalid authentication credentials
+- **403 Forbidden** - Insufficient permissions to access the resource
+- **404 Not Found** - Requested resource does not exist
+- **422 Unprocessable Entity** - Validation errors in request data
+- **429 Too Many Requests** - Rate limit exceeded
+
+### Server Error Codes (5xx)
+
+- **500 Internal Server Error** - An error occurred on the server
+- **503 Service Unavailable** - Server is temporarily unavailable
+
+## Error Response Format
+
+Error responses include descriptive messages to help diagnose issues:
+
+```json Generic Error
+{
+  "error": "Error message describing what went wrong"
+}
+```
+
+## Common Errors
+
+### Authentication Errors
+
+#### Missing Bearer Token (401)
+
+```json
+{
+  "error": "The request is missing a valid bearer token."
+}
+```
+
+**Cause**: The `Authorization` header was not included in the request.
+
+**Solution**: Add the `Authorization: Bearer YOUR_API_KEY` header to your request.
+
+#### Invalid API Key (401)
+
+```json
+{
+  "error": "The provided API key is invalid or has been disabled."
+}
+```
+
+**Causes**:
+- The API key doesn't exist
+- The API key has been disabled
+- The API key was entered incorrectly
+
+**Solution**: Verify the API key in your admin panel and ensure it's enabled.
+
+#### Insufficient Permissions (403)
+
+```json
+{
+  "error": "You do not have permission to access this resource."
+}
+```
+
+**Causes**:
+- API key lacks required permissions for the endpoint
+- Request IP is not whitelisted
+- API key type doesn't match (e.g., using a user key for admin endpoints)
+
+**Solution**: Check API key permissions and IP whitelist settings.
+
+### Validation Errors (422)
+
+Validation errors occur when request data doesn't meet requirements:
+
+```json Validation Error Example
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "email": [
+      "The email field is required."
+    ],
+    "password": [
+      "The password must be at least 8 characters."
+    ]
+  }
+}
+```
+
+**Solution**: Review the `errors` object and correct the specified fields.
+
+### Resource Not Found (404)
+
+```json
+{
+  "message": "No query results for model [App\\Models\\User] 123"
+}
+```
+
+**Causes**:
+- Resource ID doesn't exist
+- Resource was deleted
+- Incorrect endpoint URL
+
+**Solution**: Verify the resource ID and endpoint URL are correct.
+
+### Rate Limiting (429)
+
+```json
+{
+  "message": "Too Many Requests"
+}
+```
+
+**Cause**: You've exceeded the rate limit for API requests.
+
+**Solution**: 
+- Reduce request frequency
+- Check rate limit headers to know when limits reset
+- Implement exponential backoff in your application
+
+## Rate Limit Headers
+
+Rate limit information is included in response headers:
+
+```http
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 59
+X-RateLimit-Reset: 1642251600
+```
+
+<ParamField header="X-RateLimit-Limit" type="integer">
+  Maximum number of requests allowed per time window
+</ParamField>
+
+<ParamField header="X-RateLimit-Remaining" type="integer">
+  Number of requests remaining in the current window
+</ParamField>
+
+<ParamField header="X-RateLimit-Reset" type="integer">
+  Unix timestamp when the rate limit resets
+</ParamField>
+
+## Validation Error Fields
+
+When creating or updating resources, validation errors may occur for these common fields:
+
+### User Validation
+
+- **email**: Must be a valid email address and unique
+- **password**: Must be at least 8 characters
+- **first_name**: Maximum 255 characters
+- **last_name**: Maximum 255 characters
+- **role_id**: Must reference an existing role
+
+### Service Validation
+
+- **user_id**: Required, must reference an existing user
+- **product_id**: Required, must reference an existing product
+- **plan_id**: Required, must reference an existing plan
+- **quantity**: Must be a positive integer
+- **price**: Must be a valid decimal number
+- **status**: Must be one of: `pending`, `active`, `cancelled`, `suspended`
+
+### Order Validation
+
+- **user_id**: Required, must reference an existing user
+- **currency_code**: Required, must be a valid currency code
+
+### Invoice Validation
+
+- **user_id**: Required, must reference an existing user
+- **currency_code**: Required, must be a valid currency code
+- **status**: Must be one of: `pending`, `paid`, `cancelled`
+- **due_at**: Must be a valid date
+
+### Ticket Validation
+
+- **subject**: Required, maximum 255 characters
+- **user_id**: Required, must reference an existing user
+- **status**: Must be a valid ticket status
+- **priority**: Must be a valid priority level
+- **department**: Must be a valid department
+
+## Error Handling Best Practices
+
+<Note>
+  Implement robust error handling in your integration:
+</Note>
+
+### 1. Check Status Codes
+
+Always check the HTTP status code before processing the response:
+
+```javascript Example: JavaScript
+const response = await fetch(url, options);
+
+if (!response.ok) {
+  const error = await response.json();
+  console.error(`API Error ${response.status}:`, error);
+  // Handle error appropriately
+}
+
+const data = await response.json();
+```
+
+### 2. Handle Validation Errors
+
+Parse validation error messages to provide user feedback:
+
+```python Example: Python
+try:
+    response = requests.post(url, json=data, headers=headers)
+    response.raise_for_status()
+except requests.exceptions.HTTPError as e:
+    if response.status_code == 422:
+        errors = response.json().get('errors', {})
+        for field, messages in errors.items():
+            print(f"{field}: {', '.join(messages)}")
+```
+
+### 3. Implement Retry Logic
+
+For transient errors (429, 500, 503), implement exponential backoff:
+
+```javascript Example: Exponential Backoff
+async function apiRequestWithRetry(url, options, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    const response = await fetch(url, options);
+    
+    if (response.ok) {
+      return await response.json();
+    }
+    
+    if (response.status === 429 || response.status >= 500) {
+      const delay = Math.pow(2, i) * 1000; // 1s, 2s, 4s
+      await new Promise(resolve => setTimeout(resolve, delay));
+      continue;
+    }
+    
+    throw new Error(`HTTP ${response.status}`);
+  }
+}
+```
+
+### 4. Log Errors
+
+Log error details for debugging:
+
+```bash
+curl -v https://your-domain.com/api/v1/admin/users \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  2>&1 | tee api-error.log
+```
+
+## Getting Help
+
+If you encounter persistent errors:
+
+1. **Check the documentation** - Verify endpoint paths, required parameters, and permissions
+2. **Review API key settings** - Ensure permissions and IP whitelisting are configured correctly
+3. **Test with curl** - Isolate issues by testing with curl commands
+4. **Check server logs** - Admin users can review debug logs in the Paymenter admin panel
+5. **Contact support** - Reach out to Paymenter support with error details and request/response examples

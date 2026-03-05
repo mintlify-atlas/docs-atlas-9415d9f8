@@ -1,0 +1,413 @@
+---
+title: Invoicing
+description: Generate, manage, and track invoices for your hosting business with Paymenter
+---
+
+Invoices are the billing documents that request payment from customers for services, upgrades, and one-time charges. Paymenter's invoicing system handles automatic invoice generation, multi-currency support, and flexible payment options.
+
+## Overview
+
+<CardGroup cols={2}>
+  <Card title="Automatic Generation" icon="calendar-days">
+    Recurring services generate renewal invoices automatically before expiration
+  </Card>
+  <Card title="Multi-Currency Support" icon="globe">
+    Create invoices in any configured currency with automatic tax calculation
+  </Card>
+  <Card title="Invoice Snapshots" icon="camera">
+    Lock customer information at invoice creation for accurate record-keeping
+  </Card>
+  <Card title="PDF Generation" icon="file-pdf">
+    Professional PDF invoices with your company branding
+  </Card>
+</CardGroup>
+
+## Invoice Statuses
+
+Invoices progress through different statuses as they're processed:
+
+<AccordionGroup>
+  <Accordion title="Pending" icon="clock">
+    Invoice has been issued but not yet paid. Customers can:
+    - View invoice details
+    - Pay via any configured payment gateway
+    - Download PDF copy
+    
+    Pending invoices have a due date (typically 7 days from issue).
+  </Accordion>
+  
+  <Accordion title="Paid" icon="circle-check">
+    Invoice has been paid in full. The system automatically:
+    - Activates or renews associated services
+    - Sends payment confirmation email
+    - Updates customer credit balance if overpaid
+    
+    Paid invoices cannot be modified.
+  </Accordion>
+  
+  <Accordion title="Cancelled" icon="ban">
+    Invoice has been voided by an administrator. Common reasons:
+    - Customer cancelled order before payment
+    - Billing error requiring new invoice
+    - Service no longer needed
+    
+    Cancelled invoices are retained for record-keeping.
+  </Accordion>
+</AccordionGroup>
+
+## Invoice Components
+
+Each invoice contains:
+
+### Header Information
+
+- **Invoice Number**: Unique identifier (can be customized format)
+- **Issue Date**: When the invoice was created
+- **Due Date**: Payment deadline
+- **Bill To**: Customer name and properties (address, tax ID, etc.)
+- **Company Details**: Your business information
+
+### Invoice Items
+
+Line items representing the charges:
+
+- **Description**: What is being billed (includes date range for services)
+- **Quantity**: Number of units
+- **Unit Price**: Price per unit
+- **Total**: Quantity × Unit Price
+
+### Totals
+
+- **Subtotal**: Sum of all line items before tax
+- **Tax**: Calculated based on customer location and tax rates
+- **Total**: Final amount due
+- **Paid**: Amount already received
+- **Remaining**: Outstanding balance
+
+## Automatic Invoice Generation
+
+Paymenter generates invoices automatically for recurring services.
+
+### How It Works
+
+<Steps>
+  <Step title="Cron Job Runs">
+    Daily cron job checks for services expiring soon
+  </Step>
+  
+  <Step title="Invoice Created">
+    For each expiring service, an invoice is created with:
+    - Service renewal for the next billing period
+    - Any applicable taxes
+    - Customer's current currency
+  </Step>
+  
+  <Step title="Email Sent">
+    Customer receives email notification with:
+    - Invoice details and amount
+    - Payment link
+    - Due date reminder
+  </Step>
+  
+  <Step title="Auto-Charge (Optional)">
+    If service has a billing agreement attached:
+    - Payment gateway automatically charges the saved method
+    - Service renews immediately upon successful payment
+  </Step>
+</Steps>
+
+<Info>
+Invoices are typically generated 7 days before service expiration. This gives customers time to review and pay before service interruption.
+</Info>
+
+## Manual Invoice Creation
+
+Administrators can create manual invoices for various scenarios:
+
+### Admin Panel Process
+
+1. Navigate to **Administration** → **Invoices**
+2. Click **Create Invoice**
+3. Select customer
+4. Choose currency
+5. Set due date
+6. Add invoice items:
+   - Description
+   - Price
+   - Quantity
+   - Optional: Link to a service
+7. Review and save
+
+<Tip>
+Manual invoices are useful for one-time charges like setup fees, custom development, or account adjustments.
+</Tip>
+
+## Customer Payment Process
+
+Customers can pay invoices through multiple methods.
+
+### Standard Payment Flow
+
+<Steps>
+  <Step title="Access Invoice">
+    Customer receives email notification or views invoice in portal
+  </Step>
+  
+  <Step title="Click Pay">
+    Invoice page shows the amount due and available payment methods
+  </Step>
+  
+  <Step title="Select Payment Method">
+    Choose from:
+    - Payment gateways (credit card, PayPal, etc.)
+    - Account credits
+    - Saved payment methods (billing agreements)
+  </Step>
+  
+  <Step title="Complete Payment">
+    Redirected to payment gateway or processed directly
+  </Step>
+  
+  <Step title="Confirmation">
+    Payment status updates automatically
+    - Success: Invoice marked paid, service activated
+    - Failed: Error message shown, can retry
+    - Processing: Status page with automatic refresh
+  </Step>
+</Steps>
+
+### Payment Options
+
+<AccordionGroup>
+  <Accordion title="Payment Gateways">
+    Credit cards, PayPal, bank transfers, and other external payment methods. Gateways are added via extensions.
+  </Accordion>
+  
+  <Accordion title="Account Credits">
+    Use existing credit balance to pay invoices. If credits are insufficient, can pay remaining balance via another method.
+  </Accordion>
+  
+  <Accordion title="Saved Payment Methods">
+    Billing agreements allow one-click payment with previously saved cards or accounts. Can also set as default for automatic billing.
+  </Accordion>
+</AccordionGroup>
+
+### Partial Payments
+
+Customers can make partial payments using credits:
+
+1. Select "Account Credit" as payment method
+2. System applies available credits to invoice
+3. If insufficient, remaining balance shown
+4. Select another payment method for the rest
+
+<Note>
+Full payment is required to activate services. Partially paid invoices remain in "pending" status.
+</Note>
+
+## Invoice Snapshots
+
+To maintain accurate historical records, Paymenter can "snapshot" customer information when invoices are created.
+
+### What Gets Captured
+
+- Customer name at time of invoice
+- Address and contact properties
+- Tax rate and tax country
+- Company details and bill-to text
+
+### Why It Matters
+
+Snapshots ensure that:
+
+- Invoices reflect customer information at time of purchase
+- Historical invoices remain accurate even if customer updates their details
+- Tax calculations are preserved for auditing
+- PDF invoices always show correct information
+
+<Info>
+Invoice snapshots can be enabled/disabled in settings. When disabled, invoices always show current customer information.
+</Info>
+
+## Invoice Transactions
+
+Each payment attempt creates a transaction record:
+
+### Transaction Statuses
+
+- **Processing**: Payment is being verified by gateway
+- **Succeeded**: Payment completed successfully
+- **Failed**: Payment was declined or encountered error
+
+### Transaction Details
+
+- Amount paid
+- Payment gateway used
+- Transaction ID from gateway
+- Timestamp
+- Status and error messages
+
+<Tip>
+Multiple transactions can exist for a single invoice (e.g., failed attempt followed by successful payment). The invoice total tracks remaining balance.
+</Tip>
+
+## Tax Handling
+
+Paymenter supports flexible tax calculation:
+
+### Tax Configuration
+
+1. Create tax rates in **Administration** → **Tax Rates**
+2. Specify:
+   - Tax name (VAT, GST, Sales Tax)
+   - Rate percentage
+   - Countries where it applies
+3. Tax is automatically calculated based on customer's country
+
+### Inclusive vs. Exclusive Tax
+
+Configure whether prices include or exclude tax:
+
+- **Exclusive**: Tax added to price at checkout
+- **Inclusive**: Tax already included in displayed price
+
+<Warning>
+Changing tax settings affects new invoices only. Existing invoices retain their original tax calculations.
+</Warning>
+
+## Invoice PDF
+
+Customers and admins can download professional PDF invoices.
+
+### PDF Contents
+
+- Company logo and contact information
+- Customer billing address
+- Invoice number and dates
+- Itemized charges
+- Tax breakdown
+- Payment instructions
+- Custom footer text
+
+### Customization
+
+PDF appearance can be customized via:
+
+- Company settings (logo, name, address)
+- Invoice template settings
+- Custom CSS styling (advanced)
+
+## Admin Invoice Management
+
+### Invoice Dashboard
+
+View all invoices with filters:
+
+- Status (pending, paid, cancelled)
+- Customer
+- Date range
+- Currency
+- Amount range
+
+### Bulk Actions
+
+- Mark invoices as paid (manual payment recording)
+- Cancel multiple invoices
+- Send reminder emails
+- Export to CSV for accounting
+
+### Invoice Editing
+
+<Warning>
+Only pending invoices can be modified. Once an invoice is paid, it's locked to maintain financial integrity.
+</Warning>
+
+Editable fields:
+- Due date
+- Invoice items (add, remove, modify)
+- Status (mark paid or cancel)
+
+## Recurring Services & Invoices
+
+Understanding the relationship between services and invoices:
+
+### Initial Order
+
+1. Customer orders a product with recurring plan
+2. Order creates a service in "pending" status
+3. Invoice is generated for first billing period (+ setup fee if applicable)
+4. Customer pays invoice
+5. Service status changes to "active"
+6. Service expiration date is set
+
+### Renewals
+
+1. Cron job detects service expiring soon
+2. New invoice generated for next billing period
+3. If billing agreement exists, automatic charge attempted
+4. Upon payment, service expiration extended
+5. Service remains active
+
+### Failed Renewals
+
+1. Invoice remains unpaid past due date
+2. Service is suspended (optional grace period)
+3. Customer cannot access service
+4. Reminder emails sent
+5. If paid within retention period, service reactivated
+6. If unpaid too long, service may be cancelled
+
+<Note>
+Grace periods and suspension timing are configurable in settings.
+</Note>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Clear Descriptions" icon="align-left">
+    Write detailed invoice item descriptions so customers understand what they're paying for. Include date ranges for recurring services.
+  </Card>
+  
+  <Card title="Reasonable Due Dates" icon="calendar">
+    Give customers 7-14 days to pay. Too short creates payment friction; too long delays revenue.
+  </Card>
+  
+  <Card title="Automatic Reminders" icon="bell">
+    Configure email reminders for upcoming and overdue invoices. Multiple reminders improve payment rates.
+  </Card>
+  
+  <Card title="Multiple Payment Options" icon="credit-card">
+    Offer several payment methods. Customers have preferences and adding options increases conversion.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+### Invoice Not Generated
+
+- Verify cron job is running (check last run time)
+- Ensure service has recurring plan (not one-time or free)
+- Check service status is "active"
+- Confirm service expiration date is within invoice generation window
+
+### Payment Processing Issues
+
+- Check payment gateway is enabled and configured
+- Review gateway transaction logs for errors
+- Verify currency is supported by selected gateway
+- Test gateway connection from admin panel
+
+### Tax Not Calculating
+
+- Confirm tax rate exists for customer's country
+- Check customer has country property set
+- Verify tax rate is enabled
+- Review tax calculation settings
+
+---
+
+## Related Resources
+
+- [Services](/features/services) - How services generate invoices
+- [Payments](/features/payments) - Payment gateway configuration
+- [Customers](/features/customers) - Customer billing information

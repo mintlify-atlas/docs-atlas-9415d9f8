@@ -1,0 +1,330 @@
+---
+title: Services
+description: Manage active customer services and subscriptions in Paymenter
+---
+
+Services represent active instances of products that customers have purchased. When a customer orders a product, Paymenter creates a service record that tracks the lifecycle, billing, and configuration of that purchase.
+
+## Overview
+
+<CardGroup cols={2}>
+  <Card title="Lifecycle Management" icon="rotate">
+    Track services from pending activation through active use to cancellation
+  </Card>
+  <Card title="Automated Billing" icon="calendar-check">
+    Recurring services generate invoices automatically before expiration
+  </Card>
+  <Card title="Custom Labels" icon="tag">
+    Customers can name their services for easy identification
+  </Card>
+  <Card title="Extension Actions" icon="bolt">
+    Server extensions provide management buttons and custom views
+  </Card>
+</CardGroup>
+
+## Service Statuses
+
+Services progress through different statuses during their lifecycle:
+
+<AccordionGroup>
+  <Accordion title="Pending" icon="clock">
+    Service has been ordered but not yet activated. This occurs when:
+    - Initial invoice is unpaid
+    - Server provisioning is in progress
+    - Manual approval is required
+    
+    Pending services do not generate renewal invoices.
+  </Accordion>
+  
+  <Accordion title="Active" icon="circle-check">
+    Service is fully operational and accessible to the customer. Active services:
+    - Generate automatic renewal invoices
+    - Can be upgraded or cancelled
+    - Show server extension management options
+  </Accordion>
+  
+  <Accordion title="Suspended" icon="pause">
+    Service has been temporarily disabled, usually due to:
+    - Unpaid invoices
+    - Terms of service violation
+    - Customer request
+    
+    Suspended services can be reactivated by paying outstanding invoices or admin action.
+  </Accordion>
+  
+  <Accordion title="Cancelled" icon="circle-xmark">
+    Service has been terminated and is no longer active. Cancelled services:
+    - No longer generate invoices
+    - May be deleted after a retention period
+    - Cannot be reactivated (customer must order again)
+  </Accordion>
+</AccordionGroup>
+
+## Customer Service Management
+
+Customers access their services through the client portal at `/services`.
+
+### Viewing Service Details
+
+The service detail page displays:
+
+- **Service Information**: Product name, custom label, status, and expiration date
+- **Pricing**: Current price and billing cycle
+- **Configuration**: Selected config options and their values
+- **Extension Views**: Custom management interfaces from server extensions
+- **Recent Invoices**: Payment history for this service
+
+### Custom Service Labels
+
+<Steps>
+  <Step title="Navigate to Service">
+    Customer clicks on a service from their services list
+  </Step>
+  
+  <Step title="Click Edit Label">
+    Click the edit icon next to the service name
+  </Step>
+  
+  <Step title="Enter Custom Label">
+    Provide a memorable name like "Production Website" or "Development VPS"
+  </Step>
+  
+  <Step title="Save">
+    The custom label appears throughout the portal instead of the default "Product Name #123"
+  </Step>
+</Steps>
+
+<Tip>
+Encourage customers to label their services, especially if they have multiple services of the same product. It makes invoice identification much easier.
+</Tip>
+
+## Extension Actions
+
+When a product is connected to a server extension, the service page shows management options:
+
+### Action Types
+
+1. **Buttons**: Trigger server actions (restart, reinstall, backup)
+2. **Views**: Display custom interfaces (console, file manager, statistics)
+3. **Fields**: Show information (IP address, username, password)
+
+<Note>
+Extension actions only appear for active services. Pending or suspended services may have limited functionality.
+</Note>
+
+### Example Actions
+
+Depending on the server extension:
+
+- **Pterodactyl**: Game server console, file manager, reinstall
+- **Virtualizor**: VNC console, reboot, rebuild
+- **cPanel**: Control panel login, create backups
+
+## Service Upgrades
+
+Customers can upgrade their services to higher-tier products or modify configuration options.
+
+<Steps>
+  <Step title="Check Upgradability">
+    Service must be active and have available upgrade paths defined
+  </Step>
+  
+  <Step title="Select New Product">
+    Choose from configured upgrade products with matching billing cycles
+  </Step>
+  
+  <Step title="Modify Config Options">
+    Change upgradable configuration options (e.g., increase disk space)
+  </Step>
+  
+  <Step title="Review Prorated Cost">
+    System calculates the difference based on remaining service time
+  </Step>
+  
+  <Step title="Pay Upgrade Invoice">
+    If there's a cost difference, an invoice is generated
+  </Step>
+  
+  <Step title="Service Updated">
+    Upon payment, the service is upgraded and new configuration is applied
+  </Step>
+</Steps>
+
+### Upgrade Pricing
+
+Paymenter uses prorated billing for upgrades:
+
+- **Credit for Unused Time**: Calculates remaining value of current service
+- **Charge for New Service**: Prorates the new service price for the remaining period
+- **Net Difference**: Customer pays (or receives credit for) the difference
+
+<Info>
+If an upgrade results in a downgrade with a lower price, the customer receives account credits (if enabled in settings).
+</Info>
+
+## Service Cancellations
+
+Customers can request service cancellation from the service detail page.
+
+### Cancellation Types
+
+<AccordionGroup>
+  <Accordion title="Immediate Cancellation">
+    Service is terminated immediately and customer loses access. No refund is provided for remaining time.
+  </Accordion>
+  
+  <Accordion title="End of Billing Period">
+    Service remains active until the current billing period expires. This is the recommended option for customers.
+  </Accordion>
+</AccordionGroup>
+
+### Cancellation Process
+
+1. Customer clicks "Cancel Service" button
+2. Selects cancellation type and provides reason
+3. Cancellation request is created with status "pending"
+4. Admin reviews and approves the cancellation
+5. Service status changes to "cancelled" at the appropriate time
+
+<Warning>
+One-time and free services cannot be cancelled through the standard process. Contact the admin for termination.
+</Warning>
+
+## Billing Agreements
+
+Customers can attach saved payment methods to recurring services for automatic billing.
+
+### Setting Up Auto-Pay
+
+<Steps>
+  <Step title="Open Service Details">
+    Navigate to the service you want to set up auto-pay for
+  </Step>
+  
+  <Step title="Click Billing Agreement">
+    Find the billing agreement section
+  </Step>
+  
+  <Step title="Select Payment Method">
+    Choose from saved payment methods compatible with the service currency
+  </Step>
+  
+  <Step title="Confirm">
+    The selected payment method will be charged automatically when invoices are generated
+  </Step>
+</Steps>
+
+<Tip>
+Billing agreements can also be set during invoice payment, and applied to all recurring services on that invoice.
+</Tip>
+
+## Admin Service Management
+
+Administrators have additional service management capabilities.
+
+### Admin Panel Features
+
+- **Create Manual Services**: Add services without going through checkout
+- **Change Status**: Override service status (activate, suspend, cancel)
+- **Adjust Pricing**: Modify the service price without affecting the product
+- **Edit Configuration**: Change config options after creation
+- **Extend Expiration**: Give customers more time
+- **View Service History**: See all changes via audit log
+
+### Managing Customer Services
+
+1. Navigate to **Administration** → **Services**
+2. Find the service using search or filters
+3. Click on service to view details
+4. Use the edit form to modify service parameters
+
+<Note>
+Changes to service pricing only affect that specific service. The product's pricing remains unchanged for new orders.
+</Note>
+
+### Bulk Actions
+
+Perform actions on multiple services:
+
+- Suspend multiple services (e.g., for unpaid invoices)
+- Cancel services in bulk
+- Export service data for reporting
+
+## Automated Service Workflows
+
+Paymenter automates several service-related tasks:
+
+### Invoice Generation
+
+- Recurring services generate invoices automatically before expiration
+- Invoice due date is configurable (default: 7 days before expiration)
+- Services with billing agreements are charged automatically
+
+### Status Changes
+
+- Services become **Active** when initial invoice is paid
+- Services are **Suspended** when renewal invoices remain unpaid past due date
+- Services are **Cancelled** when cancellation requests are approved
+
+### Extension Provisioning
+
+- Server extensions automatically provision new services
+- Suspension triggers extension suspend action
+- Cancellation triggers extension terminate action
+
+## Service Reports
+
+Track service metrics for business insights:
+
+- **Active Services by Product**: See which products are most popular
+- **Churn Rate**: Monitor cancellations over time
+- **Revenue by Service**: Calculate MRR (Monthly Recurring Revenue)
+- **Expiring Services**: Identify services needing renewal attention
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Monitor Service Health" icon="heartbeat">
+    Regularly check for pending and suspended services that need attention. Set up notifications for failed provisioning.
+  </Card>
+  
+  <Card title="Automate Where Possible" icon="robot">
+    Use billing agreements to reduce payment friction. Configure automatic suspension for unpaid invoices.
+  </Card>
+  
+  <Card title="Clear Communication" icon="comments">
+    Email templates should clearly explain service status changes and required actions from customers.
+  </Card>
+  
+  <Card title="Grace Periods" icon="hourglass">
+    Configure appropriate grace periods before suspending services for non-payment to maintain good customer relations.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+### Service Stuck in Pending
+
+- Check if initial invoice is paid
+- Review server extension logs for provisioning errors
+- Manually activate the service from admin panel if needed
+
+### Extension Actions Not Showing
+
+- Verify service status is "active"
+- Check that product has a server assigned
+- Ensure extension is enabled and properly configured
+
+### Auto-Billing Not Working
+
+- Confirm billing agreement is attached to service
+- Verify payment gateway supports automatic charging
+- Check that customer's payment method hasn't expired
+
+---
+
+## Related Resources
+
+- [Products](/features/products) - Understanding product configuration
+- [Invoicing](/features/invoicing) - How services generate invoices
+- [Extensions](/admin/extensions) - Server integration and automation

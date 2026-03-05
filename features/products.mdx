@@ -1,0 +1,219 @@
+---
+title: Products
+description: Learn how to create and manage products in Paymenter for your hosting business
+---
+
+Products are the core offerings in your Paymenter billing system. They represent the services you sell to customers, such as web hosting plans, VPS packages, domain registrations, or any other recurring or one-time services.
+
+## Overview
+
+<CardGroup cols={2}>
+  <Card title="Product Catalog" icon="grid">
+    Organize products into categories for easy browsing by customers
+  </Card>
+  <Card title="Flexible Pricing" icon="dollar-sign">
+    Support for free, one-time, and recurring billing models
+  </Card>
+  <Card title="Multi-Currency" icon="coins">
+    Set prices in multiple currencies for global customers
+  </Card>
+  <Card title="Server Integration" icon="server">
+    Connect products to provisioning servers via extensions
+  </Card>
+</CardGroup>
+
+## Creating Products
+
+<Steps>
+  <Step title="Navigate to Products">
+    In the admin panel, go to **Administration** → **Products**
+  </Step>
+  
+  <Step title="Click Create Product">
+    Fill in the general information:
+    - **Name**: Display name for the product
+    - **Slug**: URL-friendly identifier (auto-generated from name)
+    - **Category**: Assign to a product category for organization
+    - **Description**: Rich text description shown to customers
+  </Step>
+  
+  <Step title="Configure Product Settings">
+    Set optional parameters:
+    - **Stock**: Limit available quantity (leave empty for unlimited)
+    - **Per User Limit**: Maximum quantity per customer
+    - **Allow Quantity**: Control how customers can order multiple units
+    - **Hide Product**: Hide from customer-facing catalog
+  </Step>
+  
+  <Step title="Set Up Pricing Plans">
+    Add one or more pricing plans (see Pricing section below)
+  </Step>
+  
+  <Step title="Connect Server (Optional)">
+    Link to a provisioning server if this product requires automated setup
+  </Step>
+</Steps>
+
+## Pricing Plans
+
+Each product can have multiple pricing plans with different billing cycles. This allows customers to choose between monthly, quarterly, or annual billing.
+
+### Plan Types
+
+<AccordionGroup>
+  <Accordion title="Free">
+    No charge to the customer. Useful for trial periods or complimentary services. Services with free plans do not generate invoices.
+  </Accordion>
+  
+  <Accordion title="One-Time">
+    A single payment with no recurring charges. Perfect for setup fees, domain registrations, or non-subscription products.
+  </Accordion>
+  
+  <Accordion title="Recurring">
+    Regular billing at specified intervals (daily, weekly, monthly, or yearly). The standard model for hosting services and subscriptions.
+  </Accordion>
+</AccordionGroup>
+
+### Setting Up Pricing
+
+1. **Plan Name**: Give each plan a descriptive name (e.g., "Monthly", "Annual")
+2. **Billing Period**: Set the interval (e.g., 1 month, 12 months)
+3. **Price**: Set the recurring price
+4. **Setup Fee**: Optional one-time fee charged at first order
+5. **Multi-Currency**: Add pricing for each currency you support
+
+<Tip>
+Create multiple plans with different billing cycles to offer discounts for longer commitments. For example, an annual plan at a 20% discount compared to monthly.
+</Tip>
+
+## Configuration Options
+
+Configuration options (config options) allow customers to customize products during checkout. Examples include:
+
+- **Operating System**: Linux, Windows, etc.
+- **Control Panel**: cPanel, Plesk, DirectAdmin
+- **Disk Space**: 10GB, 50GB, 100GB
+- **Bandwidth**: Unlimited, 1TB, 5TB
+
+Config options are created separately and then attached to products. Each option can have its own pricing and can be marked as upgradable.
+
+## Product Upgrades
+
+Allow customers to upgrade their existing services to higher-tier products.
+
+<Steps>
+  <Step title="Define Upgrade Path">
+    In the product's **Upgrades** tab, select which products customers can upgrade to
+  </Step>
+  
+  <Step title="Matching Billing Cycles">
+    Upgrades only work between products with matching billing cycles (e.g., monthly to monthly)
+  </Step>
+  
+  <Step title="Prorated Billing">
+    Paymenter automatically calculates prorated charges when customers upgrade mid-cycle
+  </Step>
+</Steps>
+
+<Note>
+Customers can upgrade both the product itself and individual configuration options. Make sure to enable the "upgradable" flag on config options you want customers to modify.
+</Note>
+
+## Categories
+
+Organize products into categories to improve navigation:
+
+- **Shared Hosting**
+- **VPS Servers**
+- **Dedicated Servers**
+- **Domain Services**
+- **Email Hosting**
+
+Categories appear in the customer-facing product catalog and help customers find what they need quickly.
+
+## Server Integration
+
+Connect products to provisioning servers to automate service delivery:
+
+1. **Install an Extension**: Add a server extension (e.g., Pterodactyl, Virtualizor, WHMCS)
+2. **Create a Server**: Define server connection details in **Administration** → **Servers**
+3. **Assign to Product**: Select the server in the product's **Server** tab
+4. **Configure Settings**: Each extension provides custom fields for automated provisioning
+
+<Warning>
+Test server connections thoroughly before making products available to customers. Failed provisioning can lead to service delays and support tickets.
+</Warning>
+
+## Product Visibility
+
+Control when and how products appear to customers:
+
+- **Hidden Products**: Use the "Hide product" checkbox to remove from public catalog while keeping for existing services
+- **Stock Management**: When stock reaches zero, products automatically become unavailable
+- **Category Ordering**: Drag and drop to reorder products within categories
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Clear Descriptions" icon="file-alt">
+    Write detailed product descriptions highlighting features, included resources, and limitations. Use bullet points for easy scanning.
+  </Card>
+  
+  <Card title="Logical Pricing Tiers" icon="layer-group">
+    Create starter, business, and professional tiers with clear value progression. Show savings on longer billing cycles.
+  </Card>
+  
+  <Card title="Stock Monitoring" icon="chart-line">
+    Set stock limits for limited resources (IP addresses, server slots) and monitor inventory regularly.
+  </Card>
+  
+  <Card title="Email Templates" icon="envelope">
+    Customize the email template snippet for each product to provide service-specific information to new customers.
+  </Card>
+</CardGroup>
+
+## Customer Experience
+
+When customers view products:
+
+1. They browse products organized by category
+2. Each product shows all available pricing plans
+3. They select configuration options during checkout
+4. Products with stock limits show availability
+5. The system validates quantities against per-user limits
+
+### Product URL Structure
+
+Products are accessible at: `/products/{category-slug}/{product-slug}`
+
+The slug is automatically generated from the product name but can be customized for SEO purposes.
+
+## Managing Existing Products
+
+### Editing Products
+
+- Changes to product details apply immediately
+- Existing services retain their original configuration
+- Price changes do not affect existing customers
+
+### Deleting Plans
+
+<Warning>
+You cannot delete pricing plans that have active services. Customers must migrate to new plans first.
+</Warning>
+
+### Product Reports
+
+View product performance:
+- Total services per product
+- Revenue by product
+- Popular configuration combinations
+- Stock levels and usage
+
+---
+
+## Related Resources
+
+- [Services](/features/services) - Learn about active customer services
+- [Invoicing](/features/invoicing) - Understand how products generate invoices
+- [Categories](/admin/categories) - Organize products effectively

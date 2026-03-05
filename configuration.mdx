@@ -1,0 +1,490 @@
+---
+title: Configuration
+description: Configure Paymenter environment variables, database, mail, and payment gateways
+---
+
+This guide covers all configuration options for Paymenter. Most settings are configured through environment variables in the `.env` file.
+
+## Environment File
+
+The `.env` file is located in the root directory of your Paymenter installation. If you're using Docker, this file is automatically created and linked from the `/app/var/.env` location.
+
+<Warning>
+  Never commit your `.env` file to version control. It contains sensitive information like database passwords and API keys.
+</Warning>
+
+## Core Application Settings
+
+### Application Configuration
+
+```bash
+APP_NAME=Paymenter
+APP_ENV=production
+APP_KEY=base64:your-generated-key
+APP_DEBUG=false
+APP_TIMEZONE=UTC
+```
+
+<Info>
+  The `APP_KEY` is automatically generated during installation. If you need to regenerate it, run `php artisan key:generate`.
+</Info>
+
+| Variable | Description | Default |
+|----------|-------------|----------|
+| `APP_NAME` | Application name displayed throughout the interface | `Paymenter` |
+| `APP_ENV` | Environment type (`production`, `local`, `staging`) | `production` |
+| `APP_KEY` | Encryption key for securing data | Generated automatically |
+| `APP_DEBUG` | Enable debug mode (show detailed errors) | `false` |
+| `APP_TIMEZONE` | Default timezone for the application | `UTC` |
+
+<Warning>
+  Never set `APP_DEBUG=true` in production. This will expose sensitive information in error messages.
+</Warning>
+
+### Locale Settings
+
+```bash
+APP_LOCALE=en
+APP_FALLBACK_LOCALE=en
+APP_FAKER_LOCALE=en_US
+```
+
+| Variable | Description | Default |
+|----------|-------------|----------|
+| `APP_LOCALE` | Default language for the application | `en` |
+| `APP_FALLBACK_LOCALE` | Fallback language if translation is missing | `en` |
+| `APP_FAKER_LOCALE` | Locale for generating fake data in development | `en_US` |
+
+## Database Configuration
+
+Paymenter uses MariaDB as its database. Configure your database connection:
+
+```bash
+DB_CONNECTION=mariadb
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=paymenter
+DB_USERNAME=paymenter
+DB_PASSWORD=your_secure_password
+```
+
+| Variable | Description | Default |
+|----------|-------------|----------|
+| `DB_CONNECTION` | Database driver | `mariadb` |
+| `DB_HOST` | Database host address | `127.0.0.1` |
+| `DB_PORT` | Database port | `3306` |
+| `DB_DATABASE` | Database name | `paymenter` |
+| `DB_USERNAME` | Database username | `paymenter` |
+| `DB_PASSWORD` | Database password | (empty) |
+
+<Steps>
+  <Step title="Create Database">
+    Create a dedicated database for Paymenter:
+
+    ```sql
+    CREATE DATABASE paymenter CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    ```
+  </Step>
+
+  <Step title="Create User">
+    Create a database user with appropriate permissions:
+
+    ```sql
+    CREATE USER 'paymenter'@'localhost' IDENTIFIED BY 'your_secure_password';
+    GRANT ALL PRIVILEGES ON paymenter.* TO 'paymenter'@'localhost';
+    FLUSH PRIVILEGES;
+    ```
+  </Step>
+
+  <Step title="Update Configuration">
+    Update your `.env` file with the database credentials.
+  </Step>
+
+  <Step title="Run Migrations">
+    Apply database migrations:
+
+    ```bash
+    php artisan migrate --seed --force
+    ```
+  </Step>
+</Steps>
+
+## Cache Configuration
+
+Paymenter supports multiple cache drivers. Redis is recommended for production environments.
+
+```bash
+CACHE_STORE=redis
+REDIS_CLIENT=phpredis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+```
+
+| Variable | Description | Default |
+|----------|-------------|----------|
+| `CACHE_STORE` | Cache driver (`redis`, `file`, `database`) | `redis` |
+| `REDIS_CLIENT` | Redis client (`phpredis`, `predis`) | `phpredis` |
+| `REDIS_HOST` | Redis server host | `127.0.0.1` |
+| `REDIS_PASSWORD` | Redis password (if required) | `null` |
+| `REDIS_PORT` | Redis server port | `6379` |
+
+<Tip>
+  Using Redis for caching significantly improves application performance. Install Redis and the PHP Redis extension for best results.
+</Tip>
+
+### Alternative Cache Drivers
+
+<Tabs>
+  <Tab title="Redis (Recommended)">
+    ```bash
+    CACHE_STORE=redis
+    REDIS_HOST=127.0.0.1
+    REDIS_PORT=6379
+    ```
+  </Tab>
+  <Tab title="File Cache">
+    ```bash
+    CACHE_STORE=file
+    ```
+    Cache data is stored in the `storage/framework/cache` directory.
+  </Tab>
+  <Tab title="Database Cache">
+    ```bash
+    CACHE_STORE=database
+    ```
+    Create the cache table:
+    ```bash
+    php artisan cache:table
+    php artisan migrate
+    ```
+  </Tab>
+</Tabs>
+
+## Session Configuration
+
+Configure how user sessions are managed:
+
+```bash
+SESSION_DRIVER=redis
+SESSION_LIFETIME=120
+```
+
+| Variable | Description | Default |
+|----------|-------------|----------|
+| `SESSION_DRIVER` | Session storage driver | `redis` |
+| `SESSION_LIFETIME` | Session lifetime in minutes | `120` |
+
+## Logging Configuration
+
+Control application logging behavior:
+
+```bash
+LOG_CHANNEL=stack
+LOG_STACK=daily
+LOG_DEPRECATIONS_CHANNEL=null
+LOG_LEVEL=info
+```
+
+| Variable | Description | Options |
+|----------|-------------|---------|
+| `LOG_CHANNEL` | Primary log channel | `stack`, `single`, `daily` |
+| `LOG_STACK` | Stack driver channels | `daily`, `single` |
+| `LOG_LEVEL` | Minimum log level | `debug`, `info`, `warning`, `error` |
+
+<Info>
+  Logs are stored in `storage/logs/laravel.log` or `storage/logs/laravel-YYYY-MM-DD.log` when using daily logging.
+</Info>
+
+## Mail Configuration
+
+Configure email delivery for notifications, invoices, and system emails:
+
+```bash
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=no-reply@yourdomain.com
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+| Variable | Description | Example |
+|----------|-------------|----------|
+| `MAIL_MAILER` | Mail driver | `smtp`, `sendmail`, `mailgun` |
+| `MAIL_HOST` | SMTP server host | `smtp.gmail.com` |
+| `MAIL_PORT` | SMTP server port | `587`, `465`, `2525` |
+| `MAIL_USERNAME` | SMTP username | `your-email@gmail.com` |
+| `MAIL_PASSWORD` | SMTP password | `your-password` |
+| `MAIL_ENCRYPTION` | Encryption method | `tls`, `ssl` |
+| `MAIL_FROM_ADDRESS` | Default sender email | `no-reply@yourdomain.com` |
+| `MAIL_FROM_NAME` | Default sender name | `Paymenter` |
+
+### SMTP Provider Examples
+
+<Tabs>
+  <Tab title="Gmail">
+    ```bash
+    MAIL_MAILER=smtp
+    MAIL_HOST=smtp.gmail.com
+    MAIL_PORT=587
+    MAIL_USERNAME=your-email@gmail.com
+    MAIL_PASSWORD=your-app-password
+    MAIL_ENCRYPTION=tls
+    MAIL_FROM_ADDRESS=your-email@gmail.com
+    MAIL_FROM_NAME="${APP_NAME}"
+    ```
+
+    <Note>
+      For Gmail, you need to use an [App Password](https://support.google.com/accounts/answer/185833) instead of your regular password.
+    </Note>
+  </Tab>
+  <Tab title="SendGrid">
+    ```bash
+    MAIL_MAILER=smtp
+    MAIL_HOST=smtp.sendgrid.net
+    MAIL_PORT=587
+    MAIL_USERNAME=apikey
+    MAIL_PASSWORD=your-sendgrid-api-key
+    MAIL_ENCRYPTION=tls
+    MAIL_FROM_ADDRESS=no-reply@yourdomain.com
+    MAIL_FROM_NAME="${APP_NAME}"
+    ```
+  </Tab>
+  <Tab title="Mailgun">
+    ```bash
+    MAIL_MAILER=mailgun
+    MAILGUN_DOMAIN=your-domain.com
+    MAILGUN_SECRET=your-mailgun-api-key
+    MAIL_FROM_ADDRESS=no-reply@yourdomain.com
+    MAIL_FROM_NAME="${APP_NAME}"
+    ```
+  </Tab>
+  <Tab title="Postmark">
+    ```bash
+    MAIL_MAILER=postmark
+    POSTMARK_TOKEN=your-postmark-token
+    MAIL_FROM_ADDRESS=no-reply@yourdomain.com
+    MAIL_FROM_NAME="${APP_NAME}"
+    ```
+  </Tab>
+</Tabs>
+
+### Testing Mail Configuration
+
+Test your email configuration:
+
+```bash
+php artisan tinker
+```
+
+```php
+Mail::raw('Test email', function($message) {
+    $message->to('test@example.com')->subject('Test Email');
+});
+```
+
+## Queue Configuration
+
+Configure the queue system for background jobs:
+
+```bash
+QUEUE_CONNECTION=redis
+```
+
+| Driver | Description | Use Case |
+|--------|-------------|----------|
+| `redis` | Redis-backed queue | Production (recommended) |
+| `database` | Database-backed queue | Small installations |
+| `sync` | Synchronous (no queue) | Development only |
+
+<Warning>
+  For production environments, always use `redis` or `database` queues and run a queue worker. The `sync` driver processes jobs immediately and should only be used in development.
+</Warning>
+
+### Running Queue Workers
+
+Start a queue worker:
+
+```bash
+php artisan queue:work --tries=3
+```
+
+For production, use a process manager like Supervisor or systemd to keep the queue worker running.
+
+## Security Configuration
+
+### Password Hashing
+
+```bash
+BCRYPT_ROUNDS=12
+```
+
+Higher values provide better security but slower hashing. The default value of `12` provides a good balance.
+
+### Maintenance Mode
+
+```bash
+APP_MAINTENANCE_DRIVER=file
+APP_MAINTENANCE_STORE=database
+```
+
+Control how maintenance mode is managed:
+
+```bash
+# Enable maintenance mode
+php artisan down
+
+# Enable maintenance mode with secret access
+php artisan down --secret="your-secret-token"
+
+# Disable maintenance mode
+php artisan up
+```
+
+## Storage Configuration
+
+```bash
+FILESYSTEM_DISK=local
+```
+
+| Disk | Description | Configuration |
+|------|-------------|---------------|
+| `local` | Local storage | Default, stores in `storage/app` |
+| `public` | Public storage | Accessible via web, stores in `storage/app/public` |
+| `s3` | AWS S3 | Requires AWS credentials |
+
+### Using S3 for Storage
+
+To use Amazon S3 for file storage:
+
+```bash
+FILESYSTEM_DISK=s3
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_DEFAULT_REGION=us-east-1
+AWS_BUCKET=your-bucket-name
+```
+
+## Broadcasting Configuration
+
+```bash
+BROADCAST_CONNECTION=log
+```
+
+For real-time features, you can configure broadcasting with services like Pusher or Redis.
+
+## Optimization
+
+After making configuration changes, optimize the application:
+
+<CodeGroup>
+```bash Clear Cache
+php artisan optimize:clear
+```
+
+```bash Cache Configuration
+php artisan config:cache
+```
+
+```bash Cache Routes
+php artisan route:cache
+```
+
+```bash Cache Views
+php artisan view:cache
+```
+</CodeGroup>
+
+<Warning>
+  After caching configuration, changes to `.env` files will not take effect until you clear the cache with `php artisan config:clear`.
+</Warning>
+
+## Docker-Specific Configuration
+
+When running Paymenter in Docker, you can override environment variables in the `docker-compose.yml` file:
+
+```yaml
+services:
+  paymenter:
+    environment:
+      APP_ENV: "production"
+      APP_DEBUG: "false"
+      DB_PASSWORD: "your-password"
+      CACHE_STORE: "redis"
+      REDIS_HOST: "cache"
+      DB_HOST: "database"
+      # Prevent default themes/extensions from being renewed
+      PAYMENTER_SKIP_DEFAULT: "false"
+```
+
+### Default Themes and Extensions
+
+By default, Docker installations renew default themes and extensions on every restart. To prevent this:
+
+```yaml
+PAYMENTER_SKIP_DEFAULT: "true"
+```
+
+<Info>
+  This is useful if you've customized the default themes or extensions and don't want them to be overwritten.
+</Info>
+
+## Verification
+
+Verify your configuration:
+
+```bash
+php artisan config:show
+```
+
+Check for configuration issues:
+
+```bash
+php artisan app:check-for-updates
+```
+
+## Troubleshooting
+
+### Configuration Cache Issues
+
+If configuration changes aren't taking effect:
+
+```bash
+php artisan config:clear
+php artisan cache:clear
+```
+
+### Permission Errors
+
+Ensure proper permissions on config files:
+
+```bash
+chmod 644 .env
+chown www-data:www-data .env
+```
+
+### Database Connection Errors
+
+Test database connectivity:
+
+```bash
+php artisan tinker
+```
+
+```php
+DB::connection()->getPdo();
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Updating" icon="arrow-up" href="/updating">
+    Learn how to update Paymenter to the latest version
+  </Card>
+  <Card title="Extensions" icon="puzzle-piece" href="/extensions/overview">
+    Extend Paymenter functionality with payment gateways and integrations
+  </Card>
+</CardGroup>

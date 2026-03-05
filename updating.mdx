@@ -1,0 +1,641 @@
+---
+title: Updating Paymenter
+description: Keep your Paymenter installation up to date with the latest features and security patches
+---
+
+This guide explains how to update Paymenter to the latest version. The update process differs depending on your installation method.
+
+<Warning>
+  Always backup your database and files before updating. Updates cannot be easily reversed.
+</Warning>
+
+## Pre-Update Checklist
+
+Before updating Paymenter, complete these steps:
+
+<Steps>
+  <Step title="Check Current Version">
+    Check your current Paymenter version:
+
+    ```bash
+    php artisan app:check-for-updates
+    ```
+
+    Your version is also displayed in the admin panel footer.
+  </Step>
+
+  <Step title="Review Release Notes">
+    Review the [release notes](https://github.com/paymenter/paymenter/releases) for:
+    - New features
+    - Breaking changes
+    - Required manual steps
+    - PHP version requirements
+  </Step>
+
+  <Step title="Verify Requirements">
+    Ensure your server meets the requirements:
+    - PHP 8.3 or 8.4
+    - All required PHP extensions installed
+    - Sufficient disk space
+    - Database is accessible
+  </Step>
+
+  <Step title="Create Backup">
+    **Critical:** Create a complete backup before updating.
+
+    See the [Backup](#backup-before-updating) section below.
+  </Step>
+</Steps>
+
+## Backup Before Updating
+
+Always create a backup before updating. This allows you to restore if something goes wrong.
+
+### Database Backup
+
+Backup your database:
+
+```bash
+mysqldump -u paymenter -p paymenter > paymenter_backup_$(date +%Y%m%d).sql
+```
+
+Or with Docker:
+
+```bash
+docker compose exec database mysqldump -u paymenter -pYOUR_PASSWORD paymenter > paymenter_backup_$(date +%Y%m%d).sql
+```
+
+### File Backup
+
+Backup important directories:
+
+```bash
+tar -czf paymenter_files_backup_$(date +%Y%m%d).tar.gz \
+  .env \
+  storage/ \
+  themes/ \
+  extensions/
+```
+
+<Info>
+  Store backups in a safe location outside of the Paymenter directory, preferably on a different server or storage service.
+</Info>
+
+## Update Methods
+
+<Tabs>
+  <Tab title="Docker">
+    
+    ### Updating with Docker
+
+    Docker updates are straightforward as they pull the latest image.
+
+    <Steps>
+      <Step title="Stop Services">
+        Stop the running containers:
+
+        ```bash
+        docker compose down
+        ```
+      </Step>
+
+      <Step title="Pull Latest Image">
+        Pull the latest Paymenter image:
+
+        ```bash
+        docker compose pull paymenter
+        ```
+
+        <Info>
+          By default, this pulls the `latest` tag. To use a specific version, update your `docker-compose.yml`:
+          ```yaml
+          paymenter:
+            image: ghcr.io/paymenter/paymenter:v1.2.0
+          ```
+        </Info>
+      </Step>
+
+      <Step title="Start Services">
+        Start the containers with the new image:
+
+        ```bash
+        docker compose up -d
+        ```
+
+        The entrypoint script automatically:
+        - Runs database migrations
+        - Seeds new data
+        - Clears caches
+        - Sets correct permissions
+        - Restarts queue workers
+      </Step>
+
+      <Step title="Verify Update">
+        Monitor the logs to ensure the update completed successfully:
+
+        ```bash
+        docker compose logs -f paymenter
+        ```
+
+        Look for these messages:
+        - "Migrating and Seeding D.B"
+        - "Starting cron jobs"
+        - "Starting supervisord"
+      </Step>
+
+      <Step title="Test Application">
+        Access your Paymenter installation and verify:
+        - Login works
+        - Dashboard loads
+        - No error messages
+        - Version number updated (check admin footer)
+      </Step>
+    </Steps>
+
+    ### Docker Update Commands
+
+    <CodeGroup>
+    ```bash Update to Latest
+    docker compose down
+    docker compose pull paymenter
+    docker compose up -d
+    ```
+
+    ```bash Update to Specific Version
+    # Edit docker-compose.yml first
+    # Change: image: ghcr.io/paymenter/paymenter:v1.2.0
+    docker compose down
+    docker compose pull paymenter
+    docker compose up -d
+    ```
+
+    ```bash View Logs
+    docker compose logs -f paymenter
+    ```
+    </CodeGroup>
+
+    <Tip>
+      If you've set `PAYMENTER_SKIP_DEFAULT: "true"`, default themes and extensions won't be updated. Remove this variable or set it to `"false"` to update them.
+    </Tip>
+
+  </Tab>
+  <Tab title="Automatic Update Script">
+    
+    ### Using the Update Script
+
+    Paymenter includes an automated update script that handles the entire update process.
+
+    <Warning>
+      The automatic update script requires PHP 8.2 or higher. If you're running an older version, you must upgrade PHP first.
+    </Warning>
+
+    <Steps>
+      <Step title="Download and Run Script">
+        Navigate to your Paymenter directory and run the update script:
+
+        ```bash
+        cd /var/www/paymenter
+        curl -sSL https://raw.githubusercontent.com/paymenter/paymenter/master/update.sh -o update.sh
+        chmod +x update.sh
+        sudo bash update.sh
+        ```
+
+        The script will:
+        1. Detect your web server user and group
+        2. Put the application in maintenance mode
+        3. Download the latest release
+        4. Replace core application files
+        5. Run database migrations
+        6. Clear caches
+        7. Set correct permissions
+        8. Bring the application back online
+      </Step>
+
+      <Step title="Confirm Update">
+        The script will ask for confirmation:
+
+        ```
+        Your webserver user has been detected as [www-data]: is this correct? [Y/n]:
+        Your webserver group has been detected as [www-data]: is this correct? [Y/n]:
+        Are you sure you want to run the upgrade process for your Panel? [y/N]:
+        ```
+
+        Verify the detected user/group and confirm.
+      </Step>
+
+      <Step title="Monitor Progress">
+        The script will display progress messages:
+
+        ```bash
+        $upgrader> php artisan down
+        $upgrader> curl -L -o paymenter.tar.gz https://github.com/...
+        $upgrader> tar -xzf paymenter.tar.gz
+        $upgrader> php artisan migrate --force --seed
+        $upgrader> php artisan optimize:clear
+        $upgrader> php artisan up
+        Upgrade completed.
+        ```
+      </Step>
+    </Steps>
+
+    ### Update Script Options
+
+    The update script supports several command-line options:
+
+    ```bash
+    # Specify custom web server user
+    bash update.sh --user=www-data
+
+    # Specify custom web server group
+    bash update.sh --group=www-data
+
+    # Skip confirmation prompts (use with caution)
+    bash update.sh --install
+
+    # Update from a custom URL (for beta versions)
+    bash update.sh --url=https://github.com/paymenter/paymenter/releases/download/v1.2.0-beta/paymenter.tar.gz
+    ```
+
+    ### What the Script Does
+
+    The update script automatically:
+
+    1. **Validates PHP version** - Ensures PHP 8.2+
+    2. **Checks for major version migrations** - Prevents incompatible upgrades
+    3. **Validates extensions** - Checks for incompatible extensions (pre-1.2.12)
+    4. **Enables maintenance mode** - `php artisan down`
+    5. **Downloads latest release** - From GitHub releases
+    6. **Removes old files** - Cleans `app/` and bootstrap cache
+    7. **Extracts new files** - Unpacks the release archive
+    8. **Sets permissions** - `chmod -R 755 storage bootstrap/cache extensions`
+    9. **Runs migrations** - `php artisan migrate --force --seed`
+    10. **Resets theme** - `php artisan app:settings:change theme default`
+    11. **Clears caches** - `php artisan optimize:clear`
+    12. **Optimizes icons** - `php artisan icons:cache`
+    13. **Cleans logs** - Removes old log files
+    14. **Fixes ownership** - `chown -R user:group .`
+    15. **Restarts queue** - `php artisan queue:restart`
+    16. **Disables maintenance** - `php artisan up`
+
+    <Note>
+      The script automatically changes your theme to "default" during updates. You may need to reselect your custom theme after updating.
+    </Note>
+
+  </Tab>
+  <Tab title="Manual Update">
+    
+    ### Manual Update Process
+
+    For advanced users who want full control over the update process.
+
+    <Steps>
+      <Step title="Enable Maintenance Mode">
+        Put your site in maintenance mode:
+
+        ```bash
+        cd /var/www/paymenter
+        php artisan down
+        ```
+
+        <Info>
+          Users will see a maintenance page. You can customize it with `--message="Updating..."` or allow access with `--secret="your-secret-token"`.
+        </Info>
+      </Step>
+
+      <Step title="Download Latest Release">
+        Download the latest release:
+
+        ```bash
+        curl -L -o paymenter.tar.gz https://github.com/paymenter/paymenter/releases/latest/download/paymenter.tar.gz
+        ```
+
+        Or for a specific version:
+        ```bash
+        curl -L -o paymenter.tar.gz https://github.com/paymenter/paymenter/releases/download/v1.2.0/paymenter.tar.gz
+        ```
+      </Step>
+
+      <Step title="Backup Current Installation">
+        Create a backup of core files (if not done already):
+
+        ```bash
+        tar -czf paymenter_backup_$(date +%Y%m%d).tar.gz app/ bootstrap/ config/ resources/ routes/
+        ```
+      </Step>
+
+      <Step title="Remove Old Files">
+        Remove old application files:
+
+        ```bash
+        rm -rf app bootstrap/cache/*.php
+        ```
+
+        <Warning>
+          Only delete these specific files. Do NOT delete the entire bootstrap directory or other directories like storage, themes, or extensions.
+        </Warning>
+      </Step>
+
+      <Step title="Extract New Files">
+        Extract the update archive:
+
+        ```bash
+        tar -xzf paymenter.tar.gz
+        rm paymenter.tar.gz
+        ```
+      </Step>
+
+      <Step title="Update Dependencies">
+        Update Composer dependencies:
+
+        ```bash
+        composer install --no-dev --optimize-autoloader
+        ```
+
+        If you need to rebuild frontend assets:
+        ```bash
+        npm install
+        npm run build
+        ```
+      </Step>
+
+      <Step title="Set Permissions">
+        Set correct file permissions:
+
+        ```bash
+        chmod -R 755 storage bootstrap/cache extensions
+        chown -R www-data:www-data /var/www/paymenter
+        ```
+      </Step>
+
+      <Step title="Run Database Migrations">
+        Apply database updates:
+
+        ```bash
+        php artisan migrate --force --seed
+        ```
+
+        <Info>
+          The `--force` flag is required when the application is in maintenance mode.
+        </Info>
+      </Step>
+
+      <Step title="Clear Caches">
+        Clear all application caches:
+
+        ```bash
+        php artisan optimize:clear
+        php artisan icons:cache
+        ```
+      </Step>
+
+      <Step title="Restart Queue Workers">
+        Restart the queue workers:
+
+        ```bash
+        php artisan queue:restart
+        ```
+
+        Or restart the systemd service:
+        ```bash
+        systemctl restart paymenter-queue
+        ```
+      </Step>
+
+      <Step title="Disable Maintenance Mode">
+        Bring your site back online:
+
+        ```bash
+        php artisan up
+        ```
+      </Step>
+
+      <Step title="Verify Update">
+        Verify the update:
+
+        ```bash
+        php artisan app:check-for-updates
+        ```
+
+        Check the admin panel footer for the new version number.
+      </Step>
+    </Steps>
+
+  </Tab>
+</Tabs>
+
+## Post-Update Steps
+
+After updating, perform these verification steps:
+
+<Steps>
+  <Step title="Test Core Functionality">
+    - Log in to the admin panel
+    - Create a test order
+    - Check email notifications
+    - Verify payment gateways
+    - Test customer portal
+  </Step>
+
+  <Step title="Check Logs">
+    Review logs for errors:
+
+    ```bash
+    tail -f storage/logs/laravel.log
+    ```
+
+    Or with Docker:
+    ```bash
+    docker compose logs -f paymenter
+    ```
+  </Step>
+
+  <Step title="Update Extensions">
+    Check if your extensions need updates:
+
+    1. Visit the Extensions page in the admin panel
+    2. Update any extensions with available updates
+    3. Test extension functionality
+  </Step>
+
+  <Step title="Clear Browser Cache">
+    Instruct users to clear their browser cache or perform a hard refresh:
+    - Windows/Linux: `Ctrl + Shift + R`
+    - Mac: `Cmd + Shift + R`
+  </Step>
+</Steps>
+
+## Troubleshooting Updates
+
+### Update Script Fails
+
+If the automatic update script fails:
+
+1. Check the error message for specific issues
+2. Ensure PHP version is 8.2 or higher
+3. Verify you have sufficient permissions (run with sudo)
+4. Check disk space: `df -h`
+5. Try manual update instead
+
+### Database Migration Errors
+
+If migrations fail:
+
+```bash
+# Check migration status
+php artisan migrate:status
+
+# Try running migrations again
+php artisan migrate --force
+
+# If a specific migration fails, check the error and fix the issue
+# Then try again
+```
+
+### Permission Denied Errors
+
+Fix permission issues:
+
+```bash
+sudo chown -R www-data:www-data /var/www/paymenter
+sudo chmod -R 755 /var/www/paymenter/storage
+sudo chmod -R 755 /var/www/paymenter/bootstrap/cache
+```
+
+### White Screen After Update
+
+If you see a white screen:
+
+1. Check PHP error logs
+2. Clear all caches: `php artisan optimize:clear`
+3. Rebuild caches: `php artisan config:cache && php artisan route:cache`
+4. Check file permissions
+5. Verify all extensions are compatible
+
+### Queue Not Processing
+
+Restart queue workers:
+
+```bash
+php artisan queue:restart
+systemctl restart paymenter-queue
+```
+
+### Extension Compatibility Issues
+
+If extensions cause issues after updating:
+
+1. Disable problematic extensions
+2. Check for extension updates
+3. Contact extension developers
+4. Remove incompatible extensions temporarily
+
+<Warning>
+  Some extensions may not be compatible with newer versions of Paymenter. Always check extension compatibility before updating.
+</Warning>
+
+## Rollback Procedure
+
+If the update fails and you need to rollback:
+
+<Steps>
+  <Step title="Restore Database">
+    Restore your database backup:
+
+    ```bash
+    mysql -u paymenter -p paymenter < paymenter_backup_YYYYMMDD.sql
+    ```
+  </Step>
+
+  <Step title="Restore Files">
+    Restore your file backup:
+
+    ```bash
+    tar -xzf paymenter_files_backup_YYYYMMDD.tar.gz
+    ```
+  </Step>
+
+  <Step title="Clear Caches">
+    Clear all caches:
+
+    ```bash
+    php artisan optimize:clear
+    ```
+  </Step>
+
+  <Step title="Restart Services">
+    Restart web server and queue workers:
+
+    ```bash
+    systemctl restart nginx
+    systemctl restart php8.3-fpm
+    systemctl restart paymenter-queue
+    ```
+  </Step>
+
+  <Step title="Verify">
+    Test your site to ensure it's working correctly.
+  </Step>
+</Steps>
+
+## Version-Specific Notes
+
+### Upgrading from V0 to V1
+
+<Warning>
+  Upgrading from Paymenter V0 to V1 requires a special migration process. The standard update script will not work.
+</Warning>
+
+If you're running Paymenter V0 (which included the "marketplace" feature), you must follow the [V0 to V1 migration guide](https://paymenter.org/docs/guides/v0-migration) instead of using the standard update process.
+
+The update script will detect V0 installations and prevent automatic updates:
+
+```
+Cannot execute self-upgrade process. Please follow the upgrade instructions at 
+https://paymenter.org/docs/guides/v0-migration to migrate your V0 to V1
+```
+
+### Updating from Pre-1.2.12
+
+If you're updating from version 1.2.11 or earlier, the update script will check for extensions with Filament resources (in `Admin` folders). You may need to temporarily remove some extensions before updating:
+
+```bash
+# The script will show which extensions need to be removed
+Extensions that need to be removed (temporary):
+extensions/PaymentGateways/YourExtension/Admin
+
+Cannot execute self-upgrade process. Please remove the given extensions,
+then re-run the upgrade process and add the (updated) extensions again 
+after the upgrade is complete.
+```
+
+## Update Frequency
+
+We recommend:
+
+- **Security updates**: Install immediately
+- **Minor updates**: Install within 1 week
+- **Major updates**: Plan and test before deploying
+
+<Tip>
+  Enable update notifications in the admin panel to be notified when new versions are available.
+</Tip>
+
+## Staying Informed
+
+Stay informed about updates:
+
+- Watch the [GitHub repository](https://github.com/paymenter/paymenter) for releases
+- Join the [Discord community](https://discord.gg/xB4UUT3XQg) for announcements
+- Check the admin panel for update notifications
+- Subscribe to the Paymenter blog
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="gear" href="/configuration">
+    Review configuration options after updating
+  </Card>
+  <Card title="Backup Strategy" icon="cloud-arrow-up" href="/updating">
+    Set up automated backups for peace of mind
+  </Card>
+</CardGroup>

@@ -1,0 +1,399 @@
+---
+title: 'Localization'
+description: 'Configure multi-language support and add custom translations'
+icon: 'globe'
+---
+
+Paymenter includes built-in support for multiple languages, making it easy to serve customers worldwide.
+
+## Available Languages
+
+Paymenter currently supports the following languages:
+
+<CardGroup cols={3}>
+  <Card title="Arabic" icon="language">العربية (ar)</Card>
+  <Card title="Bengali" icon="language">বাংলা (bn)</Card>
+  <Card title="German" icon="language">Deutsch (de)</Card>
+  <Card title="English" icon="language">English (en)</Card>
+  <Card title="Spanish" icon="language">Español (es)</Card>
+  <Card title="Finnish" icon="language">Suomi (fi)</Card>
+  <Card title="French" icon="language">Français (fr)</Card>
+  <Card title="Hebrew" icon="language">עברית (he)</Card>
+  <Card title="Hindi" icon="language">हिन्दी (hi)</Card>
+  <Card title="Hungarian" icon="language">Magyar (hu)</Card>
+  <Card title="Indonesian" icon="language">Bahasa Indonesia (id)</Card>
+  <Card title="Italian" icon="language">Italiano (it)</Card>
+  <Card title="Korean" icon="language">한국어 (ko)</Card>
+  <Card title="Latvian" icon="language">Latviešu (lv)</Card>
+  <Card title="Dutch" icon="language">Nederlands (nl)</Card>
+  <Card title="Norwegian" icon="language">Norsk (no)</Card>
+  <Card title="Polish" icon="language">Polski (pl)</Card>
+  <Card title="Portuguese" icon="language">Português (pt)</Card>
+  <Card title="Serbian" icon="language">Српски (sr)</Card>
+  <Card title="Swedish" icon="language">Svenska (sv)</Card>
+  <Card title="Turkish" icon="language">Türkçe (tr)</Card>
+  <Card title="Ukrainian" icon="language">Українська (uk)</Card>
+  <Card title="Chinese" icon="language">中文 (zh)</Card>
+</CardGroup>
+
+## Configuration
+
+Language settings are configured in `config/app.php`:
+
+```php config/app.php
+'locale' => env('APP_LOCALE', 'en'),
+
+'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
+
+'available_locales' => [
+    'ar' => 'العربية',
+    'bn' => 'বাংলা',
+    'de' => 'Deutsch',
+    'en' => 'English',
+    'es' => 'Español',
+    // ...
+],
+
+'rtl_locales' => [
+    'ar',
+],
+```
+
+### Set Default Language
+
+Update your `.env` file:
+
+```bash .env
+APP_LOCALE=en
+APP_FALLBACK_LOCALE=en
+```
+
+<Info>
+The fallback locale is used when a translation string is missing in the current language.
+</Info>
+
+## Translation Files
+
+Translation files are organized in the `lang/` directory:
+
+```
+lang/
+├── en/
+│   ├── auth.php          # Authentication messages
+│   ├── general.php       # General UI text
+│   ├── navigation.php    # Menu items
+│   ├── dashboard.php     # Dashboard content
+│   ├── invoices.php      # Invoice-related text
+│   ├── services.php      # Service management
+│   ├── ticket.php        # Support tickets
+│   ├── product.php       # Products and pricing
+│   ├── account.php       # User account pages
+│   ├── errors.php        # Error messages
+│   ├── admin.php         # Admin panel
+│   ├── common.php        # Common phrases
+│   ├── passwords.php     # Password reset
+│   ├── pagination.php    # Pagination labels
+│   └── validation.php    # Form validation
+├── es/
+│   └── ...
+└── fr/
+    └── ...
+```
+
+## Using Translations
+
+### In Blade Templates
+
+Use the `__()` helper function or `@lang` directive:
+
+```blade
+<h1>{{ __('general.welcome') }}</h1>
+
+<button>@lang('general.save')</button>
+
+<!-- With parameters -->
+<p>{{ __('invoices.due_in_days', ['days' => 7]) }}</p>
+```
+
+### In PHP Code
+
+Use the `__()` or `trans()` functions:
+
+```php
+return __('auth.failed');
+
+$message = trans('errors.not_found', ['resource' => 'User']);
+```
+
+### In JavaScript
+
+Pass translations to your JavaScript:
+
+```blade
+<script>
+    const translations = @json([
+        'confirm' => __('common.confirm'),
+        'cancel' => __('common.cancel'),
+    ]);
+</script>
+```
+
+## Adding a New Language
+
+<Steps>
+  <Step title="Create language directory">
+    Create a new directory in `lang/` with the ISO 639-1 language code:
+
+    ```bash
+    mkdir lang/ja
+    ```
+  </Step>
+
+  <Step title="Copy translation files">
+    Copy all files from the English directory as a starting point:
+
+    ```bash
+    cp -r lang/en/* lang/ja/
+    ```
+  </Step>
+
+  <Step title="Translate strings">
+    Edit each PHP file and translate the strings:
+
+    ```php lang/ja/auth.php
+    <?php
+
+    return [
+        'failed' => 'これらの認証情報は記録と一致しません。',
+        'password' => '提供されたパスワードが正しくありません。',
+        'sign_in' => 'サインイン',
+        'sign_up' => 'サインアップ',
+        // ...
+    ];
+    ```
+  </Step>
+
+  <Step title="Register the language">
+    Add the language to `config/app.php`:
+
+    ```php config/app.php
+    'available_locales' => [
+        // existing languages...
+        'ja' => '日本語',
+    ],
+    ```
+
+    If the language is right-to-left (RTL), add it to:
+
+    ```php config/app.php
+    'rtl_locales' => [
+        'ar',
+        'he',
+        // your RTL language
+    ],
+    ```
+  </Step>
+
+  <Step title="Clear cache">
+    Clear Laravel's cache to apply changes:
+
+    ```bash
+    php artisan config:clear
+    php artisan cache:clear
+    ```
+  </Step>
+</Steps>
+
+## Translation File Structure
+
+Translation files return an associative array:
+
+<CodeGroup>
+
+```php lang/en/general.php
+<?php
+
+return [
+    'input' => [
+        'first_name' => 'First name',
+        'last_name' => 'Last name',
+        'email' => 'Email',
+        'phone' => 'Phone',
+    ],
+
+    'all_rights_reserved' => 'All rights reserved.',
+    'update' => 'Update',
+    'save' => 'Save',
+];
+```
+
+```php lang/en/auth.php
+<?php
+
+return [
+    'failed' => 'These credentials do not match our records.',
+    'password' => 'The provided password is incorrect.',
+    'throttle' => 'Too many login attempts. Please try again in :seconds seconds.',
+
+    'sign_in' => 'Sign in',
+    'sign_up' => 'Sign up',
+    'logout' => 'Logout',
+
+    'verification' => [
+        'notice' => 'Verify your email address',
+        'sent' => 'A new verification link has been sent.',
+    ],
+];
+```
+
+</CodeGroup>
+
+## Nested Translations
+
+Access nested translations using dot notation:
+
+```blade
+{{ __('auth.verification.notice') }}
+{{ __('general.input.first_name') }}
+```
+
+## Pluralization
+
+Laravel supports pluralization for translations:
+
+```php lang/en/messages.php
+'items' => '{0} No items|{1} One item|[2,*] :count items',
+```
+
+Use with `trans_choice()`:
+
+```php
+trans_choice('messages.items', $count);
+```
+
+## Translation Parameters
+
+Pass parameters to translations:
+
+```php
+// Translation file
+'welcome' => 'Welcome, :name!',
+'due_date' => 'Due on :date at :time',
+
+// Usage
+__('messages.welcome', ['name' => $user->name]);
+__('messages.due_date', ['date' => $date, 'time' => $time]);
+```
+
+## User Language Selection
+
+Paymenter automatically includes a language switcher component:
+
+```blade
+<x-language-switch />
+<x-locale-switch />
+```
+
+Users can select their preferred language from the navigation menu.
+
+## Programmatic Language Switching
+
+### Set Locale for Current Request
+
+```php
+App::setLocale('es');
+
+// Check current locale
+$locale = App::getLocale();
+
+// Check if locale is set
+if (App::isLocale('en')) {
+    // ...
+}
+```
+
+### Store User Preference
+
+Paymenter automatically stores user language preferences via the `SetLocale` middleware:
+
+```php app/Http/Middleware/SetLocale.php
+public function handle($request, Closure $next)
+{
+    if ($request->user()) {
+        App::setLocale($request->user()->locale ?? config('app.locale'));
+    }
+
+    return $next($request);
+}
+```
+
+## Right-to-Left (RTL) Support
+
+For RTL languages, Paymenter automatically applies appropriate styling:
+
+```php config/app.php
+'rtl_locales' => [
+    'ar',  // Arabic
+    'he',  // Hebrew
+],
+```
+
+Check if current locale is RTL:
+
+```php
+$isRTL = in_array(App::getLocale(), config('app.rtl_locales'));
+```
+
+```blade
+<div @if(in_array(app()->getLocale(), config('app.rtl_locales'))) dir="rtl" @endif>
+    <!-- Content -->
+</div>
+```
+
+## Contributing Translations
+
+<Note>
+We welcome translations for additional languages! Please contribute via GitHub pull requests.
+</Note>
+
+1. Fork the Paymenter repository
+2. Add your translation files to `lang/{locale}/`
+3. Update `config/app.php` with the new locale
+4. Test thoroughly
+5. Submit a pull request
+
+## Best Practices
+
+<Warning>
+Never hardcode user-facing text. Always use translation strings, even for English.
+</Warning>
+
+- Use descriptive keys: `auth.login_button` not `auth.btn1`
+- Keep translations concise for UI elements
+- Maintain consistent terminology across files
+- Include context in comments for ambiguous strings
+- Test with longer translations (e.g., German) to ensure UI doesn't break
+- Avoid concatenating translated strings
+- Use parameters for dynamic values
+
+## Troubleshooting
+
+### Translations not appearing
+
+1. Clear the cache:
+   ```bash
+   php artisan cache:clear
+   php artisan config:clear
+   ```
+
+2. Verify the translation file exists and has valid PHP syntax
+
+3. Check that the language is registered in `config/app.php`
+
+### Mixed languages appearing
+
+Ensure all translation keys exist in all language files. Missing keys will fall back to the fallback locale.
+
+### Language switcher not working
+
+Verify the `SetLocale` middleware is active in `bootstrap/app.php`.

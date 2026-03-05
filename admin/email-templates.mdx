@@ -1,0 +1,488 @@
+---
+title: Email Templates
+description: Customize notification templates, email content, and in-app notifications in Paymenter
+---
+
+Paymenter's notification system allows you to customize email and in-app notifications sent to customers. Each notification template can be individually configured with custom content, delivery settings, and user preferences.
+
+## Overview
+
+Access notification templates at **Admin Panel → Other → Notification Templates** or visit `/admin/notification-templates`.
+
+<CardGroup cols={2}>
+  <Card title="Email Notifications" icon="envelope">
+    Customize email subject, body, CC/BCC recipients
+  </Card>
+  <Card title="In-App Notifications" icon="bell">
+    Configure push notifications shown in the app
+  </Card>
+  <Card title="User Preferences" icon="user-check">
+    Allow users to control which notifications they receive
+  </Card>
+  <Card title="Template Variables" icon="code">
+    Use dynamic variables for personalized content
+  </Card>
+</CardGroup>
+
+## Notification Template List
+
+The template list displays:
+
+- **Subject** - Email subject line (searchable)
+- **Enabled** - Whether the notification is active
+- Click any template to edit its configuration
+
+**Source**: `app/Admin/Resources/NotificationTemplateResource.php:116`
+
+## Template Structure
+
+Each notification template has:
+
+- **Key** - Unique identifier (cannot be changed after creation)
+- **Name** - Human-readable template name
+- **Enabled** - Master toggle for the entire notification
+- **Email Template** - Email subject, body, and recipients
+- **In-App Notification** - Push notification title and body
+- **User Preference Settings** - Control options for end users
+
+**Source**: `app/Models/NotificationTemplate.php:13`
+
+## Creating Templates
+
+<Steps>
+  <Step title="Navigate to Templates">
+    Go to **Admin → Other → Notification Templates** and click **New Template**
+  </Step>
+  
+  <Step title="Set Template Key">
+    Enter a unique key identifier (e.g., `order.created`, `invoice.paid`)
+    
+    <Warning>
+    The key cannot be changed after creation. Use a descriptive, consistent naming convention.
+    </Warning>
+  </Step>
+  
+  <Step title="Enable Template">
+    Toggle **Enabled** to activate the notification
+  </Step>
+  
+  <Step title="Configure Email">
+    Set up the email template (see Email Configuration below)
+  </Step>
+  
+  <Step title="Configure In-App">
+    Set up push notification (see In-App Configuration below)
+  </Step>
+  
+  <Step title="Save Template">
+    Click **Create** to save the notification template
+  </Step>
+</Steps>
+
+## Email Configuration
+
+The Email Template section configures email notifications.
+
+### Email Fields
+
+<Accordion title="Subject">
+  **Required field** - Email subject line
+  
+  - Maximum 255 characters
+  - Supports template variables (e.g., `Your invoice #{invoice.number} is ready`)
+  - Plain text only
+</Accordion>
+
+<Accordion title="Mail Enabled">
+  Controls email delivery and user preferences:
+  
+  **Options**:
+  - **User Choice, Default On** - User can disable, enabled by default
+  - **User Choice, Default Off** - User can enable, disabled by default
+  - **Force On** - Always send, user cannot disable
+  - **Force Off** - Never send, user cannot enable
+  
+  **Source**: `app/Admin/Resources/NotificationTemplateResource.php:58`
+</Accordion>
+
+<Accordion title="Body">
+  **Required field** - Email content
+  
+  - Supports Markdown and HTML
+  - Toolbar buttons disabled (use raw Markdown/HTML)
+  - Supports template variables
+  - Applied to email layout (header/footer from [Settings](/admin/settings))
+  
+  **Example**:
+  ```markdown
+  Hello {{ $user->first_name }},
+  
+  Your order #{{ $order->id }} has been completed.
+  
+  Thank you for your business!
+  ```
+</Accordion>
+
+<Accordion title="CC Recipients">
+  Carbon copy recipients (optional)
+  
+  - Multiple email addresses allowed
+  - Enter one email per tag
+  - Validated as email addresses
+  - Example use: Always CC billing@company.com on invoice emails
+</Accordion>
+
+<Accordion title="BCC Recipients">
+  Blind carbon copy recipients (optional)
+  
+  - Multiple email addresses allowed
+  - Recipients hidden from other recipients
+  - Validated as email addresses
+  - Example use: Archive all notifications to archive@company.com
+</Accordion>
+
+**Source**: `app/Admin/Resources/NotificationTemplateResource.php:48`
+
+## In-App Configuration
+
+The In-App Notification section configures push notifications displayed in the application.
+
+### In-App Fields
+
+<Accordion title="In-App Title">
+  **Required field** - Notification title shown in app
+  
+  - Maximum 255 characters
+  - Supports template variables
+  - Should be concise (displays in notification list)
+  - Disabled when In-App Enabled is set to "Force Off"
+</Accordion>
+
+<Accordion title="In-App Enabled">
+  Controls in-app delivery and user preferences:
+  
+  **Options**:
+  - **User Choice, Default On** - User can disable, enabled by default
+  - **User Choice, Default Off** - User can enable, disabled by default  
+  - **Force On** - Always show, user cannot disable
+  - **Force Off** - Never show, user cannot enable
+  
+  **Source**: `app/Admin/Resources/NotificationTemplateResource.php:89`
+</Accordion>
+
+<Accordion title="In-App Body">
+  **Required field** - Notification message content
+  
+  - Plain text (no Markdown)
+  - Supports template variables
+  - Displays when notification is expanded
+  - Disabled when In-App Enabled is set to "Force Off"
+</Accordion>
+
+<Accordion title="In-App URL">
+  Optional link when user clicks notification
+  
+  - Maximum 255 characters
+  - Supports Laravel route helpers with variables
+  - Example: `{{ route('invoices.show', $invoice) }}`
+  - Disabled when In-App Enabled is set to "Force Off"
+</Accordion>
+
+**Source**: `app/Admin/Resources/NotificationTemplateResource.php:78`
+
+## User Preference Control
+
+<Accordion title="Edit Preference Message">
+  **Optional field** - Message shown to users when editing their notification preferences
+  
+  - Explains what the notification is for
+  - Helps users decide whether to enable/disable
+  - Example: "Notifies you when a new invoice is generated"
+  - Only relevant when Mail/In-App Enabled is set to "User Choice"
+</Accordion>
+
+### How User Preferences Work
+
+The `NotificationEnabledStatus` enum controls notification delivery:
+
+1. **Force** - Always send (ignores user preference)
+2. **Never** - Never send (ignores user preference)
+3. **ChoiceOn** - User can control, default enabled
+4. **ChoiceOff** - User can control, default disabled
+
+**Source**: `app/Models/NotificationTemplate.php:32`
+
+### Permission Checking
+
+The `isEnabledForPreference()` method determines if a notification should be sent:
+
+```php
+$template->isEnabledForPreference($userPreference, 'mail');
+$template->isEnabledForPreference($userPreference, 'app');
+```
+
+**Logic**:
+- If status is `Force`, always returns `true`
+- If status is `Never`, always returns `false`
+- If status is `ChoiceOn/Off`, checks user's preference
+- Falls back to default if no user preference exists
+
+**Source**: `app/Models/NotificationTemplate.php:52`
+
+## Template Variables
+
+Notification templates support dynamic variables using Laravel's Blade syntax.
+
+### Common Variables
+
+<Accordion title="User Variables">
+  Available in all notifications:
+  
+  - `{{ $user->first_name }}` - User's first name
+  - `{{ $user->last_name }}` - User's last name
+  - `{{ $user->email }}` - User's email address
+  - `{{ $user->name }}` - Full name (first + last)
+</Accordion>
+
+<Accordion title="Invoice Variables">
+  Available in invoice-related notifications:
+  
+  - `{{ $invoice->id }}` - Invoice ID
+  - `{{ $invoice->number }}` - Formatted invoice number
+  - `{{ $invoice->total }}` - Invoice total amount
+  - `{{ $invoice->due_date }}` - Payment due date
+  - `{{ $invoice->status }}` - Invoice status
+</Accordion>
+
+<Accordion title="Service Variables">
+  Available in service-related notifications:
+  
+  - `{{ $service->id }}` - Service ID
+  - `{{ $service->name }}` - Service name
+  - `{{ $service->status }}` - Service status
+  - `{{ $service->product->name }}` - Product name
+</Accordion>
+
+<Accordion title="Order Variables">
+  Available in order-related notifications:
+  
+  - `{{ $order->id }}` - Order ID
+  - `{{ $order->status }}` - Order status
+  - `{{ $order->total }}` - Order total
+</Accordion>
+
+<Accordion title="Ticket Variables">
+  Available in ticket notifications:
+  
+  - `{{ $ticket->id }}` - Ticket ID
+  - `{{ $ticket->subject }}` - Ticket subject
+  - `{{ $ticket->status }}` - Ticket status
+  - `{{ $ticket->department }}` - Department name
+</Accordion>
+
+### Using Variables
+
+<Info>
+Variables use Laravel Blade syntax. The available variables depend on the notification context. Check your notification implementation to see which variables are passed.
+</Info>
+
+**Example Email Body**:
+```markdown
+Hello {{ $user->first_name }},
+
+Your invoice **{{ $invoice->number }}** for {{ $invoice->total }} is now due.
+
+Due Date: {{ $invoice->due_date->format('F j, Y') }}
+
+[View Invoice]({{ route('invoices.show', $invoice) }})
+
+Thank you!
+```
+
+## Notification Preferences
+
+The `NotificationPreference` model stores user-specific notification settings:
+
+```php
+$template->preferences()  // All user preferences for this template
+```
+
+**Fields**:
+- `notification_template_id` - Template reference
+- `user_id` - User who owns the preference
+- `mail_enabled` - User's email preference
+- `in_app_enabled` - User's in-app preference
+
+**Source**: `app/Models/NotificationTemplate.php:36`
+
+## Example Templates
+
+<Accordion title="Order Confirmation">
+  **Key**: `order.created`
+  
+  **Email Subject**: `Order Confirmation - Order #{{ $order->id }}`
+  
+  **Email Body**:
+  ```markdown
+  Hello {{ $user->first_name }},
+  
+  Thank you for your order! We've received your order #{{ $order->id }} and are processing it.
+  
+  **Order Details:**
+  - Total: {{ $order->total }}
+  - Status: {{ $order->status }}
+  
+  You'll receive another notification when your order is ready.
+  ```
+  
+  **Mail Enabled**: User Choice, Default On
+  
+  **In-App Title**: `Order #{{ $order->id }} Received`
+  
+  **In-App Body**: `Your order has been confirmed and is being processed.`
+  
+  **In-App URL**: `{{ route('orders.show', $order) }}`
+</Accordion>
+
+<Accordion title="Invoice Reminder">
+  **Key**: `invoice.reminder`
+  
+  **Email Subject**: `Invoice #{{ $invoice->number }} Due Soon`
+  
+  **Email Body**:
+  ```markdown
+  Hello {{ $user->first_name }},
+  
+  This is a reminder that invoice **{{ $invoice->number }}** is due on {{ $invoice->due_date->format('F j, Y') }}.
+  
+  **Amount Due**: {{ $invoice->total }}
+  
+  [Pay Now]({{ route('invoices.show', $invoice) }})
+  
+  If you've already paid, please disregard this message.
+  ```
+  
+  **Mail Enabled**: Force On (always send reminders)
+  
+  **In-App Title**: `Invoice #{{ $invoice->number }} Due Soon`
+  
+  **In-App Body**: `Due on {{ $invoice->due_date->format('M j, Y') }} - {{ $invoice->total }}`
+  
+  **In-App URL**: `{{ route('invoices.show', $invoice) }}`
+</Accordion>
+
+<Accordion title="Ticket Reply">
+  **Key**: `ticket.staff_reply`
+  
+  **Email Subject**: `Re: {{ $ticket->subject }}`
+  
+  **Email Body**:
+  ```markdown
+  Hello {{ $user->first_name }},
+  
+  We've responded to your support ticket **#{{ $ticket->id }}**:
+  
+  **Subject**: {{ $ticket->subject }}
+  
+  [View Response]({{ route('tickets.show', $ticket) }})
+  ```
+  
+  **Mail Enabled**: User Choice, Default On
+  
+  **In-App Title**: `Staff replied to ticket #{{ $ticket->id }}`
+  
+  **In-App Body**: `{{ $ticket->subject }}`
+  
+  **In-App URL**: `{{ route('tickets.show', $ticket) }}`
+</Accordion>
+
+## Testing Notifications
+
+<Steps>
+  <Step title="Enable Test Mode">
+    Configure a test email address in your mail settings
+  </Step>
+  
+  <Step title="Trigger Notification">
+    Perform the action that triggers the notification (e.g., create an order)
+  </Step>
+  
+  <Step title="Check Delivery">
+    Verify the email was received with correct content and formatting
+  </Step>
+  
+  <Step title="Test In-App">
+    Log in as the recipient and check for in-app notification
+  </Step>
+  
+  <Step title="Verify Variables">
+    Ensure all template variables are correctly replaced
+  </Step>
+</Steps>
+
+<Warning>
+Always test notification templates before enabling in production. Verify that all variables render correctly and links work as expected.
+</Warning>
+
+## Auditing
+
+All notification template changes are automatically audited:
+
+- Creates audit log entries for all modifications
+- Tracks who made changes and when
+- Records old and new values
+- View audit logs at **Admin → Audits**
+
+**Source**: `app/Models/NotificationTemplate.php:9`
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Clear Subject Lines" icon="heading">
+    Use descriptive subjects that clearly indicate the notification purpose
+  </Card>
+  <Card title="Personalization" icon="user">
+    Always include user's name and relevant details
+  </Card>
+  <Card title="Concise Content" icon="file-lines">
+    Keep email body focused and easy to scan
+  </Card>
+  <Card title="Mobile-Friendly" icon="mobile">
+    Test emails on mobile devices for readability
+  </Card>
+  <Card title="Clear CTAs" icon="hand-pointer">
+    Include obvious action buttons/links
+  </Card>
+  <Card title="Consistent Branding" icon="palette">
+    Use consistent tone and styling across all templates
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<Accordion title="Emails Not Sending">
+  1. Check that **Mail Disable** is turned off in [Settings](/admin/settings)
+  2. Verify SMTP configuration is correct
+  3. Ensure template is enabled
+  4. Check **Mail Enabled** is not set to "Force Off" or "Never"
+  5. Verify user hasn't disabled the notification in their preferences
+</Accordion>
+
+<Accordion title="Template Variables Not Working">
+  1. Verify variable syntax: `{{ $variable->property }}`
+  2. Ensure the variable exists in the notification context
+  3. Check for typos in variable names
+  4. Review notification implementation code for available variables
+</Accordion>
+
+<Accordion title="In-App Notifications Not Appearing">
+  1. Check **In-App Enabled** is not set to "Never"
+  2. Verify user has enabled the notification in preferences
+  3. Ensure template is enabled
+  4. Check browser console for JavaScript errors
+</Accordion>
+
+<Card title="Related Documentation" icon="book">
+  - [Settings](/admin/settings) - Configure SMTP and email settings
+  - [Dashboard](/admin/dashboard) - Monitor system activity
+</Card>

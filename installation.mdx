@@ -1,0 +1,437 @@
+---
+title: Installation
+description: Complete guide to installing Paymenter on your server
+---
+
+This guide will walk you through installing Paymenter on your server. You can choose between Docker installation (recommended) or manual installation.
+
+## Requirements
+
+Before installing Paymenter, ensure your system meets these requirements:
+
+- **PHP**: 8.3 or 8.4
+- **Composer**: Latest version
+- **Web Server**: Apache or Nginx
+- **Database**: MariaDB (recommended)
+- **Node.js**: v22 or higher (for building assets)
+- **Redis**: For caching (recommended)
+
+### Required PHP Extensions
+
+Paymenter requires the following PHP extensions:
+
+- `ext-intl`
+- `ext-json`
+- `ext-mbstring`
+- `ext-pdo`
+- `ext-pdo_mysql`
+- `ext-zip`
+- `ext-bcmath`
+- `ext-gd`
+
+## Installation Methods
+
+<Tabs>
+  <Tab title="Docker (Recommended)">
+    
+    ### Docker Installation
+
+    Docker is the recommended way to install Paymenter as it handles all dependencies automatically.
+
+    <Steps>
+      <Step title="Download Docker Compose File">
+        Download the example Docker Compose configuration:
+
+        ```bash
+        curl -o docker-compose.yml https://raw.githubusercontent.com/paymenter/paymenter/master/docker-compose.example.yml
+        ```
+      </Step>
+
+      <Step title="Configure Environment Variables">
+        Edit the `docker-compose.yml` file and update the database passwords:
+
+        ```yaml
+        x-common:
+          database: &db-environment
+            MYSQL_PASSWORD: &db-password "YOUR_SECURE_PASSWORD"
+            MYSQL_ROOT_PASSWORD: "YOUR_SECURE_ROOT_PASSWORD"
+        ```
+
+        <Warning>
+          Make sure to change both `MYSQL_PASSWORD` and `MYSQL_ROOT_PASSWORD` to secure values. Do not use the default `CHANGE_ME` values in production.
+        </Warning>
+      </Step>
+
+      <Step title="Start Services">
+        Start all services using Docker Compose:
+
+        ```bash
+        docker compose up -d
+        ```
+
+        This will start three services:
+        - **paymenter**: The main application
+        - **database**: MariaDB database server
+        - **cache**: Redis cache server
+      </Step>
+
+      <Step title="Wait for Installation">
+        The first startup will take a few minutes as it:
+        - Generates application keys
+        - Runs database migrations
+        - Sets up storage directories
+        - Copies default themes and extensions
+
+        Monitor the logs:
+
+        ```bash
+        docker compose logs -f paymenter
+        ```
+      </Step>
+
+      <Step title="Access Paymenter">
+        Once the installation is complete, access Paymenter at:
+
+        ```
+        http://your-server-ip
+        ```
+
+        <Info>
+          The default port is 80. You can change this in the `docker-compose.yml` file by modifying the ports section: `"8080:80"` to use port 8080 instead.
+        </Info>
+      </Step>
+    </Steps>
+
+    ### Docker Compose Configuration
+
+    The Docker setup includes these services:
+
+    | Service | Image | Purpose |
+    |---------|-------|----------|
+    | paymenter | `ghcr.io/paymenter/paymenter:latest` | Main application |
+    | database | `mariadb:lts` | MariaDB database |
+    | cache | `redis:alpine` | Redis cache |
+    | asset-builder | `node:22-alpine` | Build frontend assets (optional) |
+
+    ### Persistent Data
+
+    The following directories are mounted as volumes:
+    - `./storage/logs` - Application logs
+    - `./storage/public` - Uploaded files
+    - `./themes` - Custom themes
+    - `./extensions` - Extensions
+    - `./database` - Database files
+
+    <Tip>
+      Set `PAYMENTER_SKIP_DEFAULT: "true"` in the environment variables if you want to prevent default themes and extensions from being renewed on every restart.
+    </Tip>
+
+  </Tab>
+  <Tab title="Manual Installation">
+    
+    ### Manual Installation
+
+    For manual installation on a Linux server with direct access to PHP and a web server.
+
+    <Steps>
+      <Step title="Install Dependencies">
+        Install required system packages:
+
+        **Ubuntu/Debian:**
+        ```bash
+        apt update
+        apt install -y php8.3 php8.3-cli php8.3-fpm php8.3-mysql \
+          php8.3-mbstring php8.3-xml php8.3-zip php8.3-curl \
+          php8.3-gd php8.3-intl php8.3-bcmath \
+          mariadb-server redis-server nginx curl git unzip
+        ```
+
+        Install Composer:
+        ```bash
+        curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+        ```
+
+        Install Node.js:
+        ```bash
+        curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+        apt install -y nodejs
+        ```
+      </Step>
+
+      <Step title="Download Paymenter">
+        Download the latest release:
+
+        ```bash
+        cd /var/www
+        curl -L -o paymenter.tar.gz https://github.com/paymenter/paymenter/releases/latest/download/paymenter.tar.gz
+        tar -xzf paymenter.tar.gz
+        mv paymenter paymenter
+        cd paymenter
+        ```
+
+        Or clone from Git for development:
+        ```bash
+        cd /var/www
+        git clone https://github.com/paymenter/paymenter.git
+        cd paymenter
+        ```
+      </Step>
+
+      <Step title="Install PHP Dependencies">
+        Install Composer dependencies:
+
+        ```bash
+        composer install --no-dev --optimize-autoloader
+        ```
+
+        <Note>
+          Remove `--no-dev` if you're setting up a development environment.
+        </Note>
+      </Step>
+
+      <Step title="Install Node Dependencies">
+        Build frontend assets:
+
+        ```bash
+        npm install
+        npm run build
+        ```
+      </Step>
+
+      <Step title="Configure Environment">
+        Copy the example environment file:
+
+        ```bash
+        cp .env.example .env
+        ```
+
+        Generate an application key:
+
+        ```bash
+        php artisan key:generate --force
+        ```
+      </Step>
+
+      <Step title="Set Up Database">
+        Create a database and user:
+
+        ```bash
+        mysql -u root -p
+        ```
+
+        ```sql
+        CREATE DATABASE paymenter;
+        CREATE USER 'paymenter'@'localhost' IDENTIFIED BY 'your_secure_password';
+        GRANT ALL PRIVILEGES ON paymenter.* TO 'paymenter'@'localhost';
+        FLUSH PRIVILEGES;
+        EXIT;
+        ```
+
+        Update the `.env` file with your database credentials:
+
+        ```bash
+        DB_CONNECTION=mariadb
+        DB_HOST=127.0.0.1
+        DB_PORT=3306
+        DB_DATABASE=paymenter
+        DB_USERNAME=paymenter
+        DB_PASSWORD=your_secure_password
+        ```
+      </Step>
+
+      <Step title="Run Migrations">
+        Run database migrations and seeders:
+
+        ```bash
+        php artisan migrate --seed --force
+        ```
+      </Step>
+
+      <Step title="Set Permissions">
+        Set correct file permissions:
+
+        ```bash
+        chown -R www-data:www-data /var/www/paymenter
+        chmod -R 755 /var/www/paymenter
+        chmod -R 755 /var/www/paymenter/storage
+        chmod -R 755 /var/www/paymenter/bootstrap/cache
+        chmod -R 755 /var/www/paymenter/extensions
+        ```
+
+        Create storage symlink:
+
+        ```bash
+        php artisan storage:link
+        ```
+      </Step>
+
+      <Step title="Configure Web Server">
+        Configure Nginx with the following server block:
+
+        ```nginx
+        server {
+            listen 80;
+            listen [::]:80;
+            server_name your-domain.com;
+            root /var/www/paymenter/public;
+
+            index index.php;
+
+            location / {
+                try_files $uri $uri/ /index.php?$query_string;
+            }
+
+            # Allow larger file uploads
+            client_max_body_size 100m;
+            client_body_timeout 120s;
+
+            location ~ \.php$ {
+                fastcgi_split_path_info ^(.+\.php)(/.+)$;
+                fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
+                fastcgi_index index.php;
+                include fastcgi_params;
+                fastcgi_param PHP_VALUE "upload_max_filesize = 100M \n post_max_size=100M";
+                fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+                fastcgi_param HTTP_PROXY "";
+                fastcgi_intercept_errors off;
+                fastcgi_buffer_size 16k;
+                fastcgi_buffers 4 16k;
+                fastcgi_connect_timeout 300;
+                fastcgi_send_timeout 300;
+                fastcgi_read_timeout 300;
+            }
+
+            location ~ /\.ht {
+                deny all;
+            }
+        }
+        ```
+
+        Save this to `/etc/nginx/sites-available/paymenter` and enable it:
+
+        ```bash
+        ln -s /etc/nginx/sites-available/paymenter /etc/nginx/sites-enabled/
+        nginx -t
+        systemctl restart nginx
+        ```
+      </Step>
+
+      <Step title="Set Up Queue Worker">
+        Create a systemd service for the queue worker:
+
+        ```bash
+        nano /etc/systemd/system/paymenter-queue.service
+        ```
+
+        ```ini
+        [Unit]
+        Description=Paymenter Queue Worker
+        After=network.target
+
+        [Service]
+        Type=simple
+        User=www-data
+        Group=www-data
+        Restart=always
+        ExecStart=/usr/bin/php /var/www/paymenter/artisan queue:work --tries=3
+
+        [Install]
+        WantedBy=multi-user.target
+        ```
+
+        Enable and start the service:
+
+        ```bash
+        systemctl enable paymenter-queue
+        systemctl start paymenter-queue
+        ```
+      </Step>
+
+      <Step title="Set Up Cron Job">
+        Add a cron job for scheduled tasks:
+
+        ```bash
+        crontab -e -u www-data
+        ```
+
+        Add this line:
+
+        ```cron
+        * * * * * php /var/www/paymenter/artisan schedule:run >> /dev/null 2>&1
+        ```
+      </Step>
+    </Steps>
+
+  </Tab>
+</Tabs>
+
+## Post-Installation
+
+### Create Admin Account
+
+After installation, create your first admin account through the web interface by visiting your Paymenter URL.
+
+### Configure Cache
+
+For better performance, configure Redis as your cache driver in the `.env` file:
+
+```bash
+CACHE_STORE=redis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+```
+
+### SSL Certificate
+
+It's highly recommended to secure your Paymenter installation with SSL. You can use Let's Encrypt:
+
+```bash
+apt install certbot python3-certbot-nginx
+certbot --nginx -d your-domain.com
+```
+
+## Troubleshooting
+
+### Permission Issues
+
+If you encounter permission errors, ensure the web server user owns the Paymenter directory:
+
+```bash
+chown -R www-data:www-data /var/www/paymenter
+```
+
+### Database Connection Failed
+
+Verify your database credentials in the `.env` file and ensure MariaDB is running:
+
+```bash
+systemctl status mariadb
+```
+
+### 500 Internal Server Error
+
+Check application logs:
+
+```bash
+tail -f storage/logs/laravel.log
+```
+
+### Queue Not Processing
+
+Ensure the queue worker is running:
+
+```bash
+systemctl status paymenter-queue
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="gear" href="/configuration">
+    Configure environment variables, payment gateways, and mail settings
+  </Card>
+  <Card title="Updating" icon="arrow-up" href="/updating">
+    Learn how to update Paymenter to the latest version
+  </Card>
+</CardGroup>

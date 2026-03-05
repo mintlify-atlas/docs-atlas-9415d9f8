@@ -1,0 +1,518 @@
+---
+title: 'Cron Jobs & Scheduled Tasks'
+description: 'Configure automated tasks for invoice generation, service management, and system maintenance'
+icon: 'clock'
+---
+
+Paymenter relies on scheduled tasks (cron jobs) to automate critical billing operations, service lifecycle management, and system maintenance.
+
+## Required Cron Job
+
+Paymenter requires a single cron job entry that runs Laravel's task scheduler:
+
+```bash
+* * * * * cd /path-to-paymenter && php artisan schedule:run >> /dev/null 2>&1
+```
+
+<Warning>
+This cron job must run every minute. All scheduled tasks are managed by Laravel's scheduler.
+</Warning>
+
+### Adding the Cron Job
+
+<Steps>
+  <Step title="Open crontab editor">
+    ```bash
+    crontab -e
+    ```
+  </Step>
+
+  <Step title="Add the cron entry">
+    ```bash
+    * * * * * cd /var/www/paymenter && php artisan schedule:run >> /dev/null 2>&1
+    ```
+
+    Replace `/var/www/paymenter` with your actual Paymenter installation path.
+  </Step>
+
+  <Step title="Verify it's running">
+    Check the last scheduler run time in the admin panel under Settings > System, or run:
+
+    ```bash
+    php artisan schedule:list
+    ```
+  </Step>
+</Steps>
+
+## Scheduled Tasks
+
+Paymenter schedules the following tasks automatically:
+
+### Scheduler Heartbeat
+
+**Command:** `app:schedule-heartbeat`
+**Frequency:** Every minute
+**Purpose:** Updates the last scheduler run timestamp
+
+```php
+Schedule::command(ScheduleHeartbeatCommand::class)
+    ->description('Updates the last scheduler run time')
+    ->everyMinute()
+    ->onOneServer();
+```
+
+This helps administrators verify the cron job is working correctly.
+
+### Main Cron Job
+
+**Command:** `app:cron-job`
+**Frequency:** Daily at configured time (default: 00:00)
+**Purpose:** Handles all billing and service management automation
+
+```php
+Schedule::command(CronJob::class)
+    ->description('Runs daily to send out invoices, suspend servers, etc.')
+    ->dailyAt(config('settings.cronjob_time', '00:00'))
+    ->onOneServer();
+```
+
+<Info>
+You can configure the cron job execution time in Settings > System > Cron Job Time.
+</Info>
+
+### Email Fetching
+
+**Command:** `app:fetch-emails`
+**Frequency:** Every 5 minutes
+**Purpose:** Imports ticket replies via IMAP (if enabled)
+
+```php
+Schedule::command(FetchEmails::class)
+    ->description('Import ticket emails using IMAP')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
+```
+
+### Telemetry
+
+**Command:** `app:telemetry`
+**Frequency:** Daily at random time (if enabled)
+**Purpose:** Sends anonymous usage statistics
+
+```php
+if (config('app.telemetry_enabled')) {
+    Schedule::command(TelemetryCommand::class)
+        ->description('Sends telemetry data')
+        ->dailyAt($settings['hour'] . ':' . $settings['minute']);
+}
+```
+
+## Main Cron Job Tasks
+
+The `app:cron-job` command performs multiple critical operations:
+
+### 1. Invoice Generation
+
+**Task:** `invoices_created`
+**Trigger:** Service expiring within X days (default: 7)
+
+Automatically creates renewal invoices for active services:
+
+<CodeGroup>
+
+```php Invoice Creation
+Service::where('status', 'active')
+    ->where('expires_at', '<', now()->addDays((int) config('settings.cronjob_invoice', 7)))
+    ->get()
+    ->each(function ($service) {
+        // Skip if pending invoice exists
+        if ($service->invoices()->where('status', 'pending')->exists()) {
+            return;
+        }
+
+        // Create invoice
+        $invoice = $service->invoices()->create([
+            'user_id' => $service->user_id,
+            'status' => 'pending',
+            'due_at' => $service->expires_at,
+            'currency_code' => $service->currency_code,
+        ]);
+
+        // Add invoice items
+        $invoice->items()->create([
+            'reference_id' => $service->id,
+            'reference_type' => Service::class,
+            'price' => $service->price,
+            'quantity' => $service->quantity,
+            'description' => $service->description,
+        ]);
+    });
+```
+
+```php Free Services
+// If service price is 0, immediately activate next period
+if ($service->price <= 0) {
+    (new RenewServiceService)->handle($service);
+    return;
+}
+```
+
+```php Credit Payment
+// Automatically pay with credits if enabled
+if (config('settings.credits_auto_use', true)) {
+    $credits = $user->credits()
+        ->where('currency_code', $invoice->currency_code)
+        ->first();
+
+    if ($credits && $credits->amount >= $invoice->remaining) {
+        $credits->amount -= $invoice->remaining;
+        $credits->save();
+
+        ExtensionHelper::addPayment(
+            $invoice->id,
+            null,
+            amount: $invoice->remaining,
+            isCreditTransaction: true
+        );
+    }
+}
+```
+
+```php Billing Agreements
+// Charge billing agreements (saved payment methods)
+if ($service->billing_agreement_id && $invoice->status === 'pending') {
+    ExtensionHelper::charge(
+        $service->billingAgreement->gateway,
+        $invoice,
+        $service->billingAgreement
+    );
+}
+```
+
+</CodeGroup>
+
+### 2. Order Cancellation
+
+**Task:** `orders_cancelled`
+**Trigger:** Pending services with unpaid first invoice after X days (default: 7)
+
+Cancels orders where the initial payment was never completed:
+
+```php
+Service::where('status', 'pending')
+    ->whereDoesntHave('invoices', function ($query) {
+        $query->where('status', 'paid');
+    })
+    ->where('created_at', '<', now()->subDays(
+        (int) config('settings.cronjob_order_cancel', 7)
+    ))
+    ->each(function ($service) {
+        $service->invoices()
+            ->where('status', 'pending')
+            ->update(['status' => 'cancelled']);
+
+        $service->update(['status' => 'cancelled']);
+
+        // Return stock
+        if ($service->product->stock !== null) {
+            $service->product->increment('stock', $service->quantity);
+        }
+    });
+```
+
+### 3. Service Suspension
+
+**Task:** `services_suspended`
+**Trigger:** Active services overdue by X days (default: 2)
+
+Suspends services with unpaid invoices:
+
+```php
+Service::where('status', 'active')
+    ->where('expires_at', '<', now()->subDays(
+        (int) config('settings.cronjob_order_suspend', 2)
+    ))
+    ->each(function ($service) {
+        SuspendJob::dispatch($service);
+        $service->update(['status' => 'suspended']);
+    });
+```
+
+### 4. Service Termination
+
+**Task:** `services_terminated`
+**Trigger:** Suspended services overdue by X days (default: 14)
+
+Terminates long-overdue suspended services:
+
+```php
+Service::where('status', 'suspended')
+    ->where('expires_at', '<', now()->subDays(
+        (int) config('settings.cronjob_order_terminate', 14)
+    ))
+    ->each(function ($service) {
+        TerminateJob::dispatch($service);
+
+        $service->update(['status' => 'cancelled']);
+
+        // Cancel outstanding invoices
+        $service->invoices()
+            ->where('status', 'pending')
+            ->update(['status' => 'cancelled']);
+
+        // Return stock
+        if ($service->product->stock !== null) {
+            $service->product->increment('stock', $service->quantity);
+        }
+    });
+```
+
+### 5. Upgrade Invoice Updates
+
+**Task:** `upgrade_invoices_updated`
+**Trigger:** Pending service upgrades
+
+Recalculates upgrade invoice amounts and cancels expired upgrades:
+
+```php
+ServiceUpgrade::where('status', 'pending')
+    ->each(function ($upgrade) {
+        // Cancel if service already expired
+        if ($upgrade->service->expires_at < now()) {
+            $upgrade->update(['status' => 'cancelled']);
+            $upgrade->invoice?->update(['status' => 'cancelled']);
+            return;
+        }
+
+        // Update invoice price
+        $upgrade->invoice->items()->update([
+            'price' => $upgrade->calculatePrice()->price,
+        ]);
+    });
+```
+
+### 6. Ticket Auto-Close
+
+**Task:** `tickets_closed`
+**Trigger:** Tickets with no response for X days (default: 7)
+
+Automatically closes inactive tickets:
+
+```php
+Ticket::where('status', 'replied')
+    ->each(function ($ticket) {
+        $lastMessage = $ticket->messages()->latest('created_at')->first();
+
+        if ($lastMessage && $lastMessage->created_at < now()->subDays(
+            (int) config('settings.cronjob_close_ticket', 7)
+        )) {
+            $ticket->update(['status' => 'closed']);
+        }
+    });
+```
+
+### 7. Email Log Cleanup
+
+**Task:** `email_logs_deleted`
+**Trigger:** Email logs older than X days (default: 90)
+
+Cleans up old notification logs:
+
+```php
+Notification::where('created_at', '<', now()->subDays(
+    (int) config('settings.cronjob_delete_email_logs', 90)
+))->delete();
+```
+
+## Cron Job Configuration
+
+Configure timing and thresholds in the admin panel:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `cronjob_time` | `00:00` | Time to run daily cron job |
+| `cronjob_invoice` | `7` | Days before expiry to create invoice |
+| `cronjob_order_cancel` | `7` | Days to cancel unpaid orders |
+| `cronjob_order_suspend` | `2` | Days overdue before suspension |
+| `cronjob_order_terminate` | `14` | Days overdue before termination |
+| `cronjob_close_ticket` | `7` | Days inactive before auto-close |
+| `cronjob_delete_email_logs` | `90` | Days to keep email logs |
+
+## Queue Workers
+
+Paymenter uses database queues for background jobs. You must run a queue worker:
+
+```bash
+php artisan queue:work --tries=3 --timeout=90
+```
+
+<Warning>
+The queue worker must be running continuously. Use a process monitor like Supervisor.
+</Warning>
+
+### Supervisor Configuration
+
+Create `/etc/supervisor/conf.d/paymenter-worker.conf`:
+
+```ini
+[program:paymenter-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/paymenter/artisan queue:work --sleep=3 --tries=3 --max-time=3600
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+user=www-data
+numprocs=2
+redirect_stderr=true
+stdout_logfile=/var/www/paymenter/storage/logs/worker.log
+stopwaitsecs=3600
+```
+
+Start the worker:
+
+```bash
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start paymenter-worker:*
+```
+
+### Systemd Service
+
+Alternatively, create a systemd service at `/etc/systemd/system/paymenter-worker.service`:
+
+```ini
+[Unit]
+Description=Paymenter Queue Worker
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+Restart=always
+ExecStart=/usr/bin/php /var/www/paymenter/artisan queue:work --sleep=3 --tries=3
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start:
+
+```bash
+sudo systemctl enable paymenter-worker
+sudo systemctl start paymenter-worker
+```
+
+## Running Tasks Manually
+
+You can run scheduled tasks manually for testing:
+
+```bash
+# Run all scheduled tasks that are due
+php artisan schedule:run
+
+# Run specific commands
+php artisan app:cron-job
+php artisan app:fetch-emails
+
+# View scheduled tasks
+php artisan schedule:list
+```
+
+## Monitoring
+
+### Check Cron Job Status
+
+In the admin panel, go to Settings > System to view:
+- Last scheduler run time
+- Cron job statistics
+- Number of invoices charged
+- Tasks completed per run
+
+### View Cron Job Logs
+
+```bash
+tail -f storage/logs/laravel.log | grep "Cronjob"
+```
+
+### Database Statistics
+
+Cron job statistics are stored in the `cron_stats` table:
+
+```sql
+SELECT * FROM cron_stats ORDER BY created_at DESC LIMIT 10;
+```
+
+## Troubleshooting
+
+### Cron job not running
+
+1. Verify crontab entry:
+   ```bash
+   crontab -l
+   ```
+
+2. Check scheduler heartbeat:
+   ```bash
+   php artisan tinker
+   >>> Setting::where('key', 'last_cron_run')->first()->value
+   ```
+
+3. Manually test:
+   ```bash
+   php artisan schedule:run -vvv
+   ```
+
+### Queue jobs not processing
+
+1. Check if worker is running:
+   ```bash
+   ps aux | grep "queue:work"
+   ```
+
+2. Check failed jobs:
+   ```bash
+   php artisan queue:failed
+   ```
+
+3. Retry failed jobs:
+   ```bash
+   php artisan queue:retry all
+   ```
+
+### Tasks taking too long
+
+Increase timeout for specific tasks:
+
+```php
+Schedule::command(CronJob::class)
+    ->dailyAt('00:00')
+    ->timeout(300); // 5 minutes
+```
+
+## Best Practices
+
+<Tip>
+Monitor cron job execution regularly to ensure invoices are being generated on time.
+</Tip>
+
+- Set appropriate timeframes for suspension and termination
+- Review cron job statistics weekly
+- Keep queue workers monitored with Supervisor or systemd
+- Test changes to cron configuration in a staging environment
+- Configure email notifications for cron job failures
+- Regularly review and clean up old logs
+- Adjust timing based on your business hours and customer timezone
+
+## Email Notifications
+
+Paymenter sends email notifications for critical events:
+
+- Invoice generated
+- Payment received
+- Service suspended
+- Service terminated  
+- Payment failure (billing agreements)
+
+Configure email templates in the admin panel under Settings > Email Templates.
