@@ -1,0 +1,249 @@
+---
+title: Categories
+description: Manage product categories via the API
+---
+
+The Categories API allows you to retrieve and organize product categories in Paymenter. Categories can have parent-child relationships for nested organization.
+
+## The Category Object
+
+<ResponseField name="id" type="integer">
+  Unique identifier for the category
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Category name
+</ResponseField>
+
+<ResponseField name="slug" type="string">
+  URL-friendly slug for the category
+</ResponseField>
+
+<ResponseField name="parent_id" type="integer">
+  ID of the parent category (null for root categories)
+</ResponseField>
+
+<ResponseField name="created_at" type="datetime">
+  Timestamp when the category was created
+</ResponseField>
+
+<ResponseField name="updated_at" type="datetime">
+  Timestamp when the category was last updated
+</ResponseField>
+
+### Relationships
+
+<ResponseField name="products" type="array">
+  Products belonging to this category
+</ResponseField>
+
+<ResponseField name="parent" type="object">
+  The parent category (if this is a subcategory)
+</ResponseField>
+
+<ResponseField name="children" type="array">
+  Child categories (subcategories of this category)
+</ResponseField>
+
+## List Categories
+
+Retrieve a paginated list of all product categories.
+
+<CodeGroup>
+```bash cURL
+curl https://your-domain.com/api/v1/admin/categories \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://your-domain.com/api/v1/admin/categories', {
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Accept': 'application/json'
+  }
+});
+
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://your-domain.com/api/v1/admin/categories',
+    headers={
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Accept': 'application/json'
+    }
+)
+
+categories = response.json()
+```
+
+```php PHP
+$client = new GuzzleHttp\Client();
+
+$response = $client->get('https://your-domain.com/api/v1/admin/categories', [
+    'headers' => [
+        'Authorization' => 'Bearer YOUR_API_KEY',
+        'Accept' => 'application/json',
+    ],
+]);
+
+$categories = json_decode($response->getBody(), true);
+```
+</CodeGroup>
+
+### Query Parameters
+
+<ParamField query="per_page" type="integer" default="15">
+  Number of items per page
+</ParamField>
+
+<ParamField query="page" type="integer">
+  Page number for pagination
+</ParamField>
+
+<ParamField query="filter[name]" type="string">
+  Filter categories by name
+</ParamField>
+
+<ParamField query="filter[parent_id]" type="integer">
+  Filter by parent category ID
+</ParamField>
+
+<ParamField query="sort" type="string">
+  Sort by field (id, name, created_at, updated_at). Prefix with `-` for descending order
+</ParamField>
+
+<ParamField query="include" type="string">
+  Include relationships (products, parent, children)
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "Web Hosting",
+      "slug": "web-hosting",
+      "parent_id": null,
+      "created_at": "2024-01-15T10:00:00.000000Z",
+      "updated_at": "2024-01-15T10:00:00.000000Z"
+    },
+    {
+      "id": 2,
+      "name": "VPS Hosting",
+      "slug": "vps-hosting",
+      "parent_id": null,
+      "created_at": "2024-01-15T10:05:00.000000Z",
+      "updated_at": "2024-01-15T10:05:00.000000Z"
+    }
+  ],
+  "links": {
+    "first": "https://your-domain.com/api/v1/admin/categories?page=1",
+    "last": "https://your-domain.com/api/v1/admin/categories?page=1",
+    "prev": null,
+    "next": null
+  },
+  "meta": {
+    "current_page": 1,
+    "from": 1,
+    "path": "https://your-domain.com/api/v1/admin/categories",
+    "per_page": 15,
+    "to": 2
+  }
+}
+```
+
+## Retrieve a Category
+
+Get details of a specific category by ID.
+
+<CodeGroup>
+```bash cURL
+curl https://your-domain.com/api/v1/admin/categories/1 \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://your-domain.com/api/v1/admin/categories/1', {
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Accept': 'application/json'
+  }
+});
+
+const category = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://your-domain.com/api/v1/admin/categories/1',
+    headers={
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Accept': 'application/json'
+    }
+)
+
+category = response.json()
+```
+
+```php PHP
+$client = new GuzzleHttp\Client();
+
+$response = $client->get('https://your-domain.com/api/v1/admin/categories/1', [
+    'headers' => [
+        'Authorization' => 'Bearer YOUR_API_KEY',
+        'Accept' => 'application/json',
+    ],
+]);
+
+$category = json_decode($response->getBody(), true);
+```
+</CodeGroup>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the category to retrieve
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="include" type="string">
+  Include relationships (products, parent, children)
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": {
+    "id": 1,
+    "name": "Web Hosting",
+    "slug": "web-hosting",
+    "parent_id": null,
+    "created_at": "2024-01-15T10:00:00.000000Z",
+    "updated_at": "2024-01-15T10:00:00.000000Z"
+  }
+}
+```
+
+## Working with Nested Categories
+
+Categories support parent-child relationships. Use the `include` parameter to retrieve the category hierarchy:
+
+```bash
+curl "https://your-domain.com/api/v1/admin/categories/1?include=children,parent" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json"
+```
+
+This returns the category with its parent and all child categories included.

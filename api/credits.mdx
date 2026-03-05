@@ -1,0 +1,490 @@
+---
+title: Credits
+description: Manage account credits via the API
+---
+
+The Credits API allows you to create, retrieve, update, and delete account credits in Paymenter. Credits are monetary balances that customers can use to pay for services.
+
+## The Credit Object
+
+<ResponseField name="id" type="integer">
+  Unique identifier for the credit
+</ResponseField>
+
+<ResponseField name="amount" type="decimal">
+  Credit amount in the specified currency
+</ResponseField>
+
+<ResponseField name="currency_code" type="string">
+  Three-letter ISO currency code (e.g., USD, EUR, GBP)
+</ResponseField>
+
+<ResponseField name="user_id" type="integer">
+  ID of the user who owns this credit
+</ResponseField>
+
+<ResponseField name="created_at" type="datetime">
+  Timestamp when the credit was created
+</ResponseField>
+
+<ResponseField name="updated_at" type="datetime">
+  Timestamp when the credit was last updated
+</ResponseField>
+
+### Relationships
+
+<ResponseField name="user" type="object">
+  The user who owns this credit
+</ResponseField>
+
+<ResponseField name="currency" type="object">
+  Currency details for this credit
+</ResponseField>
+
+## List Credits
+
+Retrieve a paginated list of all account credits.
+
+<CodeGroup>
+```bash cURL
+curl https://your-domain.com/api/v1/admin/credits \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://your-domain.com/api/v1/admin/credits', {
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Accept': 'application/json'
+  }
+});
+
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://your-domain.com/api/v1/admin/credits',
+    headers={
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Accept': 'application/json'
+    }
+)
+
+credits = response.json()
+```
+
+```php PHP
+$client = new GuzzleHttp\Client();
+
+$response = $client->get('https://your-domain.com/api/v1/admin/credits', [
+    'headers' => [
+        'Authorization' => 'Bearer YOUR_API_KEY',
+        'Accept' => 'application/json',
+    ],
+]);
+
+$credits = json_decode($response->getBody(), true);
+```
+</CodeGroup>
+
+### Query Parameters
+
+<ParamField query="per_page" type="integer" default="15">
+  Number of items per page
+</ParamField>
+
+<ParamField query="page" type="integer">
+  Page number for pagination
+</ParamField>
+
+<ParamField query="filter[user_id]" type="integer">
+  Filter credits by user ID
+</ParamField>
+
+<ParamField query="filter[currency_code]" type="string">
+  Filter by currency code (e.g., USD, EUR)
+</ParamField>
+
+<ParamField query="sort" type="string">
+  Sort by field (id, currency_code, created_at, updated_at). Prefix with `-` for descending order
+</ParamField>
+
+<ParamField query="include" type="string">
+  Include relationships (user)
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "amount": "50.00",
+      "currency_code": "USD",
+      "user_id": 42,
+      "created_at": "2024-01-15T10:00:00.000000Z",
+      "updated_at": "2024-01-15T10:00:00.000000Z"
+    },
+    {
+      "id": 2,
+      "amount": "25.00",
+      "currency_code": "EUR",
+      "user_id": 43,
+      "created_at": "2024-01-15T11:00:00.000000Z",
+      "updated_at": "2024-01-15T11:00:00.000000Z"
+    }
+  ],
+  "links": {
+    "first": "https://your-domain.com/api/v1/admin/credits?page=1",
+    "last": "https://your-domain.com/api/v1/admin/credits?page=1",
+    "prev": null,
+    "next": null
+  },
+  "meta": {
+    "current_page": 1,
+    "from": 1,
+    "path": "https://your-domain.com/api/v1/admin/credits",
+    "per_page": 15,
+    "to": 2
+  }
+}
+```
+
+## Create a Credit
+
+Add account credit to a user's balance.
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://your-domain.com/api/v1/admin/credits \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 100.00,
+    "currency_code": "USD",
+    "user_id": 42
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://your-domain.com/api/v1/admin/credits', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    amount: 100.00,
+    currency_code: 'USD',
+    user_id: 42
+  })
+});
+
+const credit = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'https://your-domain.com/api/v1/admin/credits',
+    headers={
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'amount': 100.00,
+        'currency_code': 'USD',
+        'user_id': 42
+    }
+)
+
+credit = response.json()
+```
+
+```php PHP
+$client = new GuzzleHttp\Client();
+
+$response = $client->post('https://your-domain.com/api/v1/admin/credits', [
+    'headers' => [
+        'Authorization' => 'Bearer YOUR_API_KEY',
+        'Accept' => 'application/json',
+        'Content-Type' => 'application/json',
+    ],
+    'json' => [
+        'amount' => 100.00,
+        'currency_code' => 'USD',
+        'user_id' => 42,
+    ],
+]);
+
+$credit = json_decode($response->getBody(), true);
+```
+</CodeGroup>
+
+### Body Parameters
+
+<ParamField body="amount" type="decimal" required>
+  The credit amount
+</ParamField>
+
+<ParamField body="currency_code" type="string" required>
+  Three-letter ISO currency code (e.g., USD, EUR, GBP)
+</ParamField>
+
+<ParamField body="user_id" type="integer" required>
+  ID of the user receiving the credit
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": {
+    "id": 3,
+    "amount": "100.00",
+    "currency_code": "USD",
+    "user_id": 42,
+    "created_at": "2024-01-15T12:00:00.000000Z",
+    "updated_at": "2024-01-15T12:00:00.000000Z"
+  }
+}
+```
+
+## Retrieve a Credit
+
+Get details of a specific credit by ID.
+
+<CodeGroup>
+```bash cURL
+curl https://your-domain.com/api/v1/admin/credits/1 \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://your-domain.com/api/v1/admin/credits/1', {
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Accept': 'application/json'
+  }
+});
+
+const credit = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://your-domain.com/api/v1/admin/credits/1',
+    headers={
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Accept': 'application/json'
+    }
+)
+
+credit = response.json()
+```
+
+```php PHP
+$client = new GuzzleHttp\Client();
+
+$response = $client->get('https://your-domain.com/api/v1/admin/credits/1', [
+    'headers' => [
+        'Authorization' => 'Bearer YOUR_API_KEY',
+        'Accept' => 'application/json',
+    ],
+]);
+
+$credit = json_decode($response->getBody(), true);
+```
+</CodeGroup>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the credit to retrieve
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="include" type="string">
+  Include relationships (user)
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": {
+    "id": 1,
+    "amount": "50.00",
+    "currency_code": "USD",
+    "user_id": 42,
+    "created_at": "2024-01-15T10:00:00.000000Z",
+    "updated_at": "2024-01-15T10:00:00.000000Z"
+  }
+}
+```
+
+## Update a Credit
+
+Modify an existing credit.
+
+<CodeGroup>
+```bash cURL
+curl -X PUT https://your-domain.com/api/v1/admin/credits/1 \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 75.00
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://your-domain.com/api/v1/admin/credits/1', {
+  method: 'PUT',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    amount: 75.00
+  })
+});
+
+const credit = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.put(
+    'https://your-domain.com/api/v1/admin/credits/1',
+    headers={
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'amount': 75.00
+    }
+)
+
+credit = response.json()
+```
+
+```php PHP
+$client = new GuzzleHttp\Client();
+
+$response = $client->put('https://your-domain.com/api/v1/admin/credits/1', [
+    'headers' => [
+        'Authorization' => 'Bearer YOUR_API_KEY',
+        'Accept' => 'application/json',
+        'Content-Type' => 'application/json',
+    ],
+    'json' => [
+        'amount' => 75.00,
+    ],
+]);
+
+$credit = json_decode($response->getBody(), true);
+```
+</CodeGroup>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the credit to update
+</ParamField>
+
+### Body Parameters
+
+<ParamField body="amount" type="decimal">
+  The new credit amount
+</ParamField>
+
+<ParamField body="currency_code" type="string">
+  Three-letter ISO currency code
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": {
+    "id": 1,
+    "amount": "75.00",
+    "currency_code": "USD",
+    "user_id": 42,
+    "created_at": "2024-01-15T10:00:00.000000Z",
+    "updated_at": "2024-01-15T13:00:00.000000Z"
+  }
+}
+```
+
+## Delete a Credit
+
+Remove a credit from a user's account.
+
+<CodeGroup>
+```bash cURL
+curl -X DELETE https://your-domain.com/api/v1/admin/credits/1 \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://your-domain.com/api/v1/admin/credits/1', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Accept': 'application/json'
+  }
+});
+```
+
+```python Python
+import requests
+
+response = requests.delete(
+    'https://your-domain.com/api/v1/admin/credits/1',
+    headers={
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Accept': 'application/json'
+    }
+)
+```
+
+```php PHP
+$client = new GuzzleHttp\Client();
+
+$response = $client->delete('https://your-domain.com/api/v1/admin/credits/1', [
+    'headers' => [
+        'Authorization' => 'Bearer YOUR_API_KEY',
+        'Accept' => 'application/json',
+    ],
+]);
+```
+</CodeGroup>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the credit to delete
+</ParamField>
+
+### Response
+
+Returns a `204 No Content` response on success.

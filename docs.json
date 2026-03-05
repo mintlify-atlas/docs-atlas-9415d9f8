@@ -94,11 +94,15 @@
             "group": "Endpoints",
             "pages": [
               "api/users",
+              "api/categories",
               "api/products",
               "api/services",
               "api/orders",
               "api/invoices",
-              "api/tickets"
+              "api/invoice-items",
+              "api/credits",
+              "api/tickets",
+              "api/ticket-messages"
             ]
           }
         ]

@@ -1,0 +1,400 @@
+---
+title: Ticket Messages
+description: Manage support ticket messages via the API
+---
+
+The Ticket Messages API allows you to create, retrieve, and delete messages within support tickets. Each message represents a reply from either the customer or support staff.
+
+## The Ticket Message Object
+
+<ResponseField name="id" type="integer">
+  Unique identifier for the ticket message
+</ResponseField>
+
+<ResponseField name="ticket_id" type="integer">
+  ID of the ticket this message belongs to
+</ResponseField>
+
+<ResponseField name="user_id" type="integer">
+  ID of the user who created this message
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  The message content
+</ResponseField>
+
+<ResponseField name="created_at" type="datetime">
+  Timestamp when the message was created
+</ResponseField>
+
+<ResponseField name="updated_at" type="datetime">
+  Timestamp when the message was last updated
+</ResponseField>
+
+### Relationships
+
+<ResponseField name="ticket" type="object">
+  The ticket this message belongs to
+</ResponseField>
+
+<ResponseField name="user" type="object">
+  The user who created this message
+</ResponseField>
+
+<ResponseField name="attachments" type="array">
+  File attachments associated with this message
+</ResponseField>
+
+## List Ticket Messages
+
+Retrieve a paginated list of all ticket messages.
+
+<CodeGroup>
+```bash cURL
+curl https://your-domain.com/api/v1/admin/ticket-messages \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://your-domain.com/api/v1/admin/ticket-messages', {
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Accept': 'application/json'
+  }
+});
+
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://your-domain.com/api/v1/admin/ticket-messages',
+    headers={
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Accept': 'application/json'
+    }
+)
+
+messages = response.json()
+```
+
+```php PHP
+$client = new GuzzleHttp\Client();
+
+$response = $client->get('https://your-domain.com/api/v1/admin/ticket-messages', [
+    'headers' => [
+        'Authorization' => 'Bearer YOUR_API_KEY',
+        'Accept' => 'application/json',
+    ],
+]);
+
+$messages = json_decode($response->getBody(), true);
+```
+</CodeGroup>
+
+### Query Parameters
+
+<ParamField query="per_page" type="integer" default="15">
+  Number of items per page
+</ParamField>
+
+<ParamField query="page" type="integer">
+  Page number for pagination
+</ParamField>
+
+<ParamField query="sort" type="string">
+  Sort by field (id, created_at, updated_at). Prefix with `-` for descending order
+</ParamField>
+
+<ParamField query="include" type="string">
+  Include relationships (ticket, user, attachments)
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "ticket_id": 42,
+      "user_id": 15,
+      "message": "I'm experiencing issues with my VPS connection.",
+      "created_at": "2024-01-15T10:00:00.000000Z",
+      "updated_at": "2024-01-15T10:00:00.000000Z"
+    },
+    {
+      "id": 2,
+      "ticket_id": 42,
+      "user_id": 1,
+      "message": "Thank you for contacting us. I'll look into this right away.",
+      "created_at": "2024-01-15T10:15:00.000000Z",
+      "updated_at": "2024-01-15T10:15:00.000000Z"
+    }
+  ],
+  "links": {
+    "first": "https://your-domain.com/api/v1/admin/ticket-messages?page=1",
+    "last": "https://your-domain.com/api/v1/admin/ticket-messages?page=1",
+    "prev": null,
+    "next": null
+  },
+  "meta": {
+    "current_page": 1,
+    "from": 1,
+    "path": "https://your-domain.com/api/v1/admin/ticket-messages",
+    "per_page": 15,
+    "to": 2
+  }
+}
+```
+
+## Create a Ticket Message
+
+Add a new message to a support ticket.
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://your-domain.com/api/v1/admin/ticket-messages \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ticket_id": 42,
+    "message": "The issue has been resolved. Please let us know if you need further assistance."
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://your-domain.com/api/v1/admin/ticket-messages', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    ticket_id: 42,
+    message: 'The issue has been resolved. Please let us know if you need further assistance.'
+  })
+});
+
+const ticketMessage = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'https://your-domain.com/api/v1/admin/ticket-messages',
+    headers={
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'ticket_id': 42,
+        'message': 'The issue has been resolved. Please let us know if you need further assistance.'
+    }
+)
+
+ticket_message = response.json()
+```
+
+```php PHP
+$client = new GuzzleHttp\Client();
+
+$response = $client->post('https://your-domain.com/api/v1/admin/ticket-messages', [
+    'headers' => [
+        'Authorization' => 'Bearer YOUR_API_KEY',
+        'Accept' => 'application/json',
+        'Content-Type' => 'application/json',
+    ],
+    'json' => [
+        'ticket_id' => 42,
+        'message' => 'The issue has been resolved. Please let us know if you need further assistance.',
+    ],
+]);
+
+$ticketMessage = json_decode($response->getBody(), true);
+```
+</CodeGroup>
+
+### Body Parameters
+
+<ParamField body="ticket_id" type="integer" required>
+  ID of the ticket to add this message to
+</ParamField>
+
+<ParamField body="message" type="string" required>
+  The message content
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": {
+    "id": 3,
+    "ticket_id": 42,
+    "user_id": 1,
+    "message": "The issue has been resolved. Please let us know if you need further assistance.",
+    "created_at": "2024-01-15T12:00:00.000000Z",
+    "updated_at": "2024-01-15T12:00:00.000000Z"
+  }
+}
+```
+
+<Note>
+  The authenticated user (via API key) will be set as the message author.
+</Note>
+
+## Retrieve a Ticket Message
+
+Get details of a specific ticket message by ID.
+
+<CodeGroup>
+```bash cURL
+curl https://your-domain.com/api/v1/admin/ticket-messages/1 \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://your-domain.com/api/v1/admin/ticket-messages/1', {
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Accept': 'application/json'
+  }
+});
+
+const message = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://your-domain.com/api/v1/admin/ticket-messages/1',
+    headers={
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Accept': 'application/json'
+    }
+)
+
+message = response.json()
+```
+
+```php PHP
+$client = new GuzzleHttp\Client();
+
+$response = $client->get('https://your-domain.com/api/v1/admin/ticket-messages/1', [
+    'headers' => [
+        'Authorization' => 'Bearer YOUR_API_KEY',
+        'Accept' => 'application/json',
+    ],
+]);
+
+$message = json_decode($response->getBody(), true);
+```
+</CodeGroup>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the ticket message to retrieve
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="include" type="string">
+  Include relationships (ticket, user, attachments)
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": {
+    "id": 1,
+    "ticket_id": 42,
+    "user_id": 15,
+    "message": "I'm experiencing issues with my VPS connection.",
+    "created_at": "2024-01-15T10:00:00.000000Z",
+    "updated_at": "2024-01-15T10:00:00.000000Z"
+  }
+}
+```
+
+## Delete a Ticket Message
+
+Remove a message from a support ticket.
+
+<CodeGroup>
+```bash cURL
+curl -X DELETE https://your-domain.com/api/v1/admin/ticket-messages/1 \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://your-domain.com/api/v1/admin/ticket-messages/1', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Accept': 'application/json'
+  }
+});
+```
+
+```python Python
+import requests
+
+response = requests.delete(
+    'https://your-domain.com/api/v1/admin/ticket-messages/1',
+    headers={
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Accept': 'application/json'
+    }
+)
+```
+
+```php PHP
+$client = new GuzzleHttp\Client();
+
+$response = $client->delete('https://your-domain.com/api/v1/admin/ticket-messages/1', [
+    'headers' => [
+        'Authorization' => 'Bearer YOUR_API_KEY',
+        'Accept' => 'application/json',
+    ],
+]);
+```
+</CodeGroup>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the ticket message to delete
+</ParamField>
+
+### Response
+
+Returns a `204 No Content` response on success.
+
+<Warning>
+  Deleting a message is permanent and cannot be undone. Consider closing the ticket instead if you want to preserve the conversation history.
+</Warning>
+
+## Filtering Messages by Ticket
+
+To retrieve all messages for a specific ticket, use the Tickets API endpoint with includes:
+
+```bash
+curl "https://your-domain.com/api/v1/admin/tickets/42?include=messages" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json"
+```
+
+This returns the ticket with all its messages included in the response.

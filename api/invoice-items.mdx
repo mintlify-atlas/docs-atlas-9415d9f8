@@ -1,0 +1,557 @@
+---
+title: Invoice Items
+description: Manage individual invoice line items via the API
+---
+
+The Invoice Items API allows you to create, retrieve, update, and delete line items on invoices. Each invoice item represents a single product or service being billed.
+
+## The Invoice Item Object
+
+<ResponseField name="id" type="integer">
+  Unique identifier for the invoice item
+</ResponseField>
+
+<ResponseField name="invoice_id" type="integer">
+  ID of the invoice this item belongs to
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Description of the item
+</ResponseField>
+
+<ResponseField name="quantity" type="integer">
+  Quantity of items
+</ResponseField>
+
+<ResponseField name="price" type="decimal">
+  Unit price for this item
+</ResponseField>
+
+<ResponseField name="reference_type" type="string">
+  Type of the related resource (e.g., Service, Product)
+</ResponseField>
+
+<ResponseField name="reference_id" type="integer">
+  ID of the related resource
+</ResponseField>
+
+<ResponseField name="created_at" type="datetime">
+  Timestamp when the item was created
+</ResponseField>
+
+<ResponseField name="updated_at" type="datetime">
+  Timestamp when the item was last updated
+</ResponseField>
+
+### Relationships
+
+<ResponseField name="invoice" type="object">
+  The invoice this item belongs to
+</ResponseField>
+
+<ResponseField name="reference" type="object">
+  The related resource (polymorphic - could be Service, Product, etc.)
+</ResponseField>
+
+<ResponseField name="gateway" type="object">
+  Payment gateway information
+</ResponseField>
+
+## List Invoice Items
+
+Retrieve a paginated list of all invoice items.
+
+<CodeGroup>
+```bash cURL
+curl https://your-domain.com/api/v1/admin/invoice-items \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://your-domain.com/api/v1/admin/invoice-items', {
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Accept': 'application/json'
+  }
+});
+
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://your-domain.com/api/v1/admin/invoice-items',
+    headers={
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Accept': 'application/json'
+    }
+)
+
+items = response.json()
+```
+
+```php PHP
+$client = new GuzzleHttp\Client();
+
+$response = $client->get('https://your-domain.com/api/v1/admin/invoice-items', [
+    'headers' => [
+        'Authorization' => 'Bearer YOUR_API_KEY',
+        'Accept' => 'application/json',
+    ],
+]);
+
+$items = json_decode($response->getBody(), true);
+```
+</CodeGroup>
+
+### Query Parameters
+
+<ParamField query="per_page" type="integer" default="15">
+  Number of items per page
+</ParamField>
+
+<ParamField query="page" type="integer">
+  Page number for pagination
+</ParamField>
+
+<ParamField query="filter[quantity]" type="integer">
+  Filter by quantity
+</ParamField>
+
+<ParamField query="filter[price]" type="decimal">
+  Filter by price
+</ParamField>
+
+<ParamField query="filter[reference_type]" type="string">
+  Filter by reference type (e.g., Service, Product)
+</ParamField>
+
+<ParamField query="filter[reference_id]" type="integer">
+  Filter by reference ID
+</ParamField>
+
+<ParamField query="sort" type="string">
+  Sort by field (id, quantity, price, created_at, updated_at). Prefix with `-` for descending order
+</ParamField>
+
+<ParamField query="include" type="string">
+  Include relationships (invoice, reference, gateway)
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "invoice_id": 42,
+      "description": "VPS Hosting - Monthly",
+      "quantity": 1,
+      "price": "29.99",
+      "reference_type": "Service",
+      "reference_id": 15,
+      "created_at": "2024-01-15T10:00:00.000000Z",
+      "updated_at": "2024-01-15T10:00:00.000000Z"
+    },
+    {
+      "id": 2,
+      "invoice_id": 43,
+      "description": "Domain Registration - .com",
+      "quantity": 1,
+      "price": "12.99",
+      "reference_type": "Service",
+      "reference_id": 16,
+      "created_at": "2024-01-15T11:00:00.000000Z",
+      "updated_at": "2024-01-15T11:00:00.000000Z"
+    }
+  ],
+  "links": {
+    "first": "https://your-domain.com/api/v1/admin/invoice-items?page=1",
+    "last": "https://your-domain.com/api/v1/admin/invoice-items?page=1",
+    "prev": null,
+    "next": null
+  },
+  "meta": {
+    "current_page": 1,
+    "from": 1,
+    "path": "https://your-domain.com/api/v1/admin/invoice-items",
+    "per_page": 15,
+    "to": 2
+  }
+}
+```
+
+## Create an Invoice Item
+
+Add a new line item to an invoice.
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://your-domain.com/api/v1/admin/invoice-items \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "invoice_id": 42,
+    "description": "Additional Bandwidth",
+    "quantity": 1,
+    "price": 5.99
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://your-domain.com/api/v1/admin/invoice-items', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    invoice_id: 42,
+    description: 'Additional Bandwidth',
+    quantity: 1,
+    price: 5.99
+  })
+});
+
+const item = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'https://your-domain.com/api/v1/admin/invoice-items',
+    headers={
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'invoice_id': 42,
+        'description': 'Additional Bandwidth',
+        'quantity': 1,
+        'price': 5.99
+    }
+)
+
+item = response.json()
+```
+
+```php PHP
+$client = new GuzzleHttp\Client();
+
+$response = $client->post('https://your-domain.com/api/v1/admin/invoice-items', [
+    'headers' => [
+        'Authorization' => 'Bearer YOUR_API_KEY',
+        'Accept' => 'application/json',
+        'Content-Type' => 'application/json',
+    ],
+    'json' => [
+        'invoice_id' => 42,
+        'description' => 'Additional Bandwidth',
+        'quantity' => 1,
+        'price' => 5.99,
+    ],
+]);
+
+$item = json_decode($response->getBody(), true);
+```
+</CodeGroup>
+
+### Body Parameters
+
+<ParamField body="invoice_id" type="integer" required>
+  ID of the invoice to add this item to
+</ParamField>
+
+<ParamField body="description" type="string" required>
+  Description of the line item
+</ParamField>
+
+<ParamField body="quantity" type="integer" required>
+  Quantity of items
+</ParamField>
+
+<ParamField body="price" type="decimal" required>
+  Unit price for this item
+</ParamField>
+
+<ParamField body="reference_type" type="string">
+  Type of related resource (optional)
+</ParamField>
+
+<ParamField body="reference_id" type="integer">
+  ID of related resource (optional)
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": {
+    "id": 3,
+    "invoice_id": 42,
+    "description": "Additional Bandwidth",
+    "quantity": 1,
+    "price": "5.99",
+    "reference_type": null,
+    "reference_id": null,
+    "created_at": "2024-01-15T12:00:00.000000Z",
+    "updated_at": "2024-01-15T12:00:00.000000Z"
+  }
+}
+```
+
+## Retrieve an Invoice Item
+
+Get details of a specific invoice item by ID.
+
+<CodeGroup>
+```bash cURL
+curl https://your-domain.com/api/v1/admin/invoice-items/1 \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://your-domain.com/api/v1/admin/invoice-items/1', {
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Accept': 'application/json'
+  }
+});
+
+const item = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://your-domain.com/api/v1/admin/invoice-items/1',
+    headers={
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Accept': 'application/json'
+    }
+)
+
+item = response.json()
+```
+
+```php PHP
+$client = new GuzzleHttp\Client();
+
+$response = $client->get('https://your-domain.com/api/v1/admin/invoice-items/1', [
+    'headers' => [
+        'Authorization' => 'Bearer YOUR_API_KEY',
+        'Accept' => 'application/json',
+    ],
+]);
+
+$item = json_decode($response->getBody(), true);
+```
+</CodeGroup>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the invoice item to retrieve
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="include" type="string">
+  Include relationships (invoice, reference, gateway)
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": {
+    "id": 1,
+    "invoice_id": 42,
+    "description": "VPS Hosting - Monthly",
+    "quantity": 1,
+    "price": "29.99",
+    "reference_type": "Service",
+    "reference_id": 15,
+    "created_at": "2024-01-15T10:00:00.000000Z",
+    "updated_at": "2024-01-15T10:00:00.000000Z"
+  }
+}
+```
+
+## Update an Invoice Item
+
+Modify an existing invoice item.
+
+<CodeGroup>
+```bash cURL
+curl -X PUT https://your-domain.com/api/v1/admin/invoice-items/1 \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "quantity": 2,
+    "price": 24.99
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://your-domain.com/api/v1/admin/invoice-items/1', {
+  method: 'PUT',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    quantity: 2,
+    price: 24.99
+  })
+});
+
+const item = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.put(
+    'https://your-domain.com/api/v1/admin/invoice-items/1',
+    headers={
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'quantity': 2,
+        'price': 24.99
+    }
+)
+
+item = response.json()
+```
+
+```php PHP
+$client = new GuzzleHttp\Client();
+
+$response = $client->put('https://your-domain.com/api/v1/admin/invoice-items/1', [
+    'headers' => [
+        'Authorization' => 'Bearer YOUR_API_KEY',
+        'Accept' => 'application/json',
+        'Content-Type' => 'application/json',
+    ],
+    'json' => [
+        'quantity' => 2,
+        'price' => 24.99,
+    ],
+]);
+
+$item = json_decode($response->getBody(), true);
+```
+</CodeGroup>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the invoice item to update
+</ParamField>
+
+### Body Parameters
+
+<ParamField body="description" type="string">
+  New description
+</ParamField>
+
+<ParamField body="quantity" type="integer">
+  New quantity
+</ParamField>
+
+<ParamField body="price" type="decimal">
+  New unit price
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": {
+    "id": 1,
+    "invoice_id": 42,
+    "description": "VPS Hosting - Monthly",
+    "quantity": 2,
+    "price": "24.99",
+    "reference_type": "Service",
+    "reference_id": 15,
+    "created_at": "2024-01-15T10:00:00.000000Z",
+    "updated_at": "2024-01-15T13:00:00.000000Z"
+  }
+}
+```
+
+## Delete an Invoice Item
+
+Remove a line item from an invoice.
+
+<CodeGroup>
+```bash cURL
+curl -X DELETE https://your-domain.com/api/v1/admin/invoice-items/1 \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://your-domain.com/api/v1/admin/invoice-items/1', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Accept': 'application/json'
+  }
+});
+```
+
+```python Python
+import requests
+
+response = requests.delete(
+    'https://your-domain.com/api/v1/admin/invoice-items/1',
+    headers={
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Accept': 'application/json'
+    }
+)
+```
+
+```php PHP
+$client = new GuzzleHttp\Client();
+
+$response = $client->delete('https://your-domain.com/api/v1/admin/invoice-items/1', [
+    'headers' => [
+        'Authorization' => 'Bearer YOUR_API_KEY',
+        'Accept' => 'application/json',
+    ],
+]);
+```
+</CodeGroup>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the invoice item to delete
+</ParamField>
+
+### Response
+
+Returns a `204 No Content` response on success.
+
+<Note>
+  Deleting an invoice item will recalculate the invoice total. Ensure the invoice is not already paid before removing items.
+</Note>
